@@ -15,7 +15,7 @@ import {
 import { useEffect, useState } from 'react';
 
 export default function ApiKeyManager(props: {
-  onSaved?: (apiKey: string) => void;
+  onSaved?: () => void;
   compact?: boolean;
 }) {
   const { onSaved, compact } = props;
@@ -89,10 +89,9 @@ export default function ApiKeyManager(props: {
         throw new Error(result.error || 'Unable to save the API key.');
       }
 
-      localStorage.setItem('apiKey', trimmed);
       setConfigured(true);
       setApiKey('');
-      onSaved?.(trimmed);
+      onSaved?.();
       toast({
         title: 'OpenAI API key saved to .env.',
         position: 'top',
@@ -186,9 +185,8 @@ export default function ApiKeyManager(props: {
       </Link>
 
       <Text color={grayColor} fontWeight="500" fontSize="sm">
-        The key is stored locally on this machine. It is used only by the
-        server-side chat API unless you also keep the browser override in
-        localStorage.
+        The key is stored locally on this machine and used by server-side API
+        routes. It is not stored in browser localStorage.
       </Text>
     </Flex>
   );

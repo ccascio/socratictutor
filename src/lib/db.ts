@@ -136,6 +136,28 @@ function getDb(): Database.Database {
       model TEXT NOT NULL,
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS search_embeddings (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      source_type TEXT NOT NULL CHECK(source_type IN ('concept','misconception','message','artifact','flashcard')),
+      source_id TEXT NOT NULL,
+      content_hash TEXT NOT NULL,
+      embedding BLOB NOT NULL,
+      model TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(user_id, source_type, source_id, model)
+    );
+    CREATE INDEX IF NOT EXISTS idx_search_embeddings_user ON search_embeddings(user_id, model);
+
+    CREATE TABLE IF NOT EXISTS query_embeddings (
+      id TEXT PRIMARY KEY,
+      query_hash TEXT NOT NULL,
+      embedding BLOB NOT NULL,
+      model TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(query_hash, model)
+    );
   `);
 
   return db;

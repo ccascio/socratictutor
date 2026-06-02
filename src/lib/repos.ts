@@ -104,8 +104,9 @@ export function updateGoalMastery(goalId: string, masteryPercent: number): void 
   getDb().prepare(`UPDATE learning_goals SET mastery_percent = ? WHERE id = ?`).run(masteryPercent, goalId);
 }
 
-export function archiveGoal(goalId: string): void {
-  getDb().prepare(`UPDATE learning_goals SET status = 'completed' WHERE id = ?`).run(goalId);
+export function archiveGoal(goalId: string): boolean {
+  const result = getDb().prepare(`UPDATE learning_goals SET status = 'completed' WHERE id = ?`).run(goalId);
+  return result.changes > 0;
 }
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
@@ -408,10 +409,10 @@ export function scheduleReview(userId: string, data: { sourceType: ReviewItem['s
 
 // ── SM-2 review update ────────────────────────────────────────────────────────
 
-export function updateReviewItem(id: string, quality: 0 | 1 | 2 | 3 | 4 | 5): void {
+export function updateReviewItem(id: string, quality: 0 | 1 | 2 | 3 | 4 | 5): boolean {
   const db = getDb();
   const row = db.prepare(`SELECT * FROM review_items WHERE id = ?`).get(id) as ReviewRow | undefined;
-  if (!row) return;
+  if (!row) return false;
 
   // SM-2 algorithm
   let ef = row.ease_factor;
@@ -421,4 +422,5 @@ export function updateReviewItem(id: string, quality: 0 | 1 | 2 | 3 | 4 | 5): vo
 
   db.prepare(`UPDATE review_items SET ease_factor = ?, interval_days = ?, due_at = ?, last_reviewed = ? WHERE id = ?`)
     .run(ef, nextInterval, due, nowIso(), id);
+  return true;
 }

@@ -51,12 +51,14 @@ export default function SessionPage() {
       body: JSON.stringify({}),
     })
       .then(r => { if (!r.ok) throw new Error('chat error'); return r.json(); })
-      .then((data: { tutorMessage: string }) => {
-        setMessages([{ role: 'tutor', content: data.tutorMessage }]);
+      .then((data: { tutorMessage: string; messages?: ChatMessage[] }) => {
+        setMessages(data.messages?.length
+          ? data.messages
+          : [{ role: 'tutor', content: data.tutorMessage }]);
       })
       .catch(() => {})
       .finally(() => setTutorTyping(false));
-  }, [sessionId, initialized]);
+  }, [sessionId]);
 
   const handleSend = async () => {
     const trimmed = input.trim();

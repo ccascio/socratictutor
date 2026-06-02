@@ -10,6 +10,8 @@ export async function DELETE(
 ): Promise<NextResponse> {
   seedDemoData();
   const { id } = await params;
-  archiveGoal(id);
+  if (!archiveGoal(id)) {
+    return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+  }
   return NextResponse.json({ ok: true });
 }

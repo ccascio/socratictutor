@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react';
 import { MdLock } from 'react-icons/md';
 
-function APIModal(props: { setApiKey: any; sidebar?: boolean }) {
+function APIModal(props: { setApiKey: () => void; sidebar?: boolean }) {
   const { setApiKey, sidebar } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
 

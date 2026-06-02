@@ -2,7 +2,7 @@
 
 import {
   Badge, Box, Button, Divider, Flex, Grid, Icon,
-  Progress, Spinner, Text, VStack, useColorModeValue,
+  Progress, Spinner, Text, VStack, useColorModeValue, useToast,
 } from '@chakra-ui/react';
 import { MdAdd, MdAutoAwesome, MdBolt, MdChevronRight, MdWarning } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
@@ -48,7 +48,24 @@ function GoalCard({ goal, onContinue }: { goal: LearningGoal; onContinue: () => 
   );
 }
 
-function ReviewRow({ item, isLast }: { item: ReviewItem; isLast: boolean }) {
+const REVIEW_GRADES = [
+  { quality: 2, label: 'Again', colorScheme: 'red' },
+  { quality: 3, label: 'Hard', colorScheme: 'orange' },
+  { quality: 4, label: 'Good', colorScheme: 'green' },
+  { quality: 5, label: 'Easy', colorScheme: 'blue' },
+] as const;
+
+function ReviewRow({
+  item,
+  isLast,
+  onGrade,
+  isSubmitting,
+}: {
+  item: ReviewItem;
+  isLast: boolean;
+  onGrade: (item: ReviewItem, quality: 2 | 3 | 4 | 5) => void;
+  isSubmitting: boolean;
+}) {
   const textColor = useColorModeValue('navy.700', 'white');
   const subColor = useColorModeValue('gray.500', 'gray.400');
   const dividerColor = useColorModeValue('gray.100', 'whiteAlpha.100');
@@ -60,13 +77,33 @@ function ReviewRow({ item, isLast }: { item: ReviewItem; isLast: boolean }) {
   const { icon, color, label } = iconMap[item.sourceType];
   return (
     <>
-      <Flex align="center" py="12px">
-        <Icon as={icon} color={color} w="18px" h="18px" me="12px" flexShrink={0} />
-        <Box flex="1" minW="0">
-          <Text color={textColor} fontSize="sm" fontWeight="500" noOfLines={1}>{item.label}</Text>
-          <Text color={subColor} fontSize="xs">{label} · {item.goalTopic}</Text>
-        </Box>
-        {item.overdue && <Badge colorScheme="red" borderRadius="full" fontSize="xs" ms="8px">overdue</Badge>}
+      <Flex align={{ base: 'stretch', md: 'center' }} py="14px" gap="12px" direction={{ base: 'column', md: 'row' }}>
+        <Flex align="center" flex="1" minW="0">
+          <Icon as={icon} color={color} w="18px" h="18px" me="12px" flexShrink={0} />
+          <Box flex="1" minW="0">
+            <Text color={textColor} fontSize="sm" fontWeight="500" noOfLines={1}>{item.label}</Text>
+            <Text color={subColor} fontSize="xs">{label} · {item.goalTopic}</Text>
+          </Box>
+          {item.overdue && <Badge colorScheme="red" borderRadius="full" fontSize="xs" ms="8px">overdue</Badge>}
+        </Flex>
+        <Flex gap="6px" justify={{ base: 'flex-end', md: 'flex-start' }} flexShrink={0} wrap="wrap">
+          {REVIEW_GRADES.map(grade => (
+            <Button
+              key={grade.quality}
+              size="xs"
+              variant={grade.quality === 4 ? 'solid' : 'outline'}
+              colorScheme={grade.colorScheme}
+              borderRadius="8px"
+              minW="58px"
+              onClick={() => onGrade(item, grade.quality)}
+              isLoading={isSubmitting}
+              isDisabled={isSubmitting}
+              aria-label={`Rate ${item.label} as ${grade.label}`}
+            >
+              {grade.label}
+            </Button>
+          ))}
+        </Flex>
       </Flex>
       {!isLast && <Divider borderColor={dividerColor} />}
     </>
@@ -98,6 +135,7 @@ function SessionRow({ session, goals, onClick }: { session: Session; goals: Lear
 
 export default function Dashboard() {
   const router = useRouter();
+  const toast = useToast();
   const textColor = useColorModeValue('navy.700', 'white');
   const subColor = useColorModeValue('gray.500', 'gray.400');
 
@@ -105,6 +143,7 @@ export default function Dashboard() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -124,6 +163,41 @@ export default function Dashboard() {
     const res = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goalId }) });
     const { id } = await res.json() as { id: string };
     router.push(`/session/${id}`);
+  };
+
+  const handleReviewGrade = async (item: ReviewItem, quality: 2 | 3 | 4 | 5) => {
+    if (reviewingId) return;
+    setReviewingId(item.id);
+
+    try {
+      const res = await fetch('/api/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, quality }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(body.error || `Review update failed (${res.status})`);
+      }
+      setReviewItems(prev => prev.filter(review => review.id !== item.id));
+      toast({
+        title: 'Review scheduled',
+        description: `${item.label} will come back based on your rating.`,
+        status: 'success',
+        position: 'top',
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: 'Could not save review',
+        description: error instanceof Error ? error.message : 'Please try again.',
+        status: 'error',
+        position: 'top',
+        isClosable: true,
+      });
+    } finally {
+      setReviewingId(null);
+    }
   };
 
   if (loading) return <Flex align="center" justify="center" minH="60vh"><Spinner color="brand.500" size="lg" /></Flex>;
@@ -159,7 +233,15 @@ export default function Dashboard() {
         </Flex>
         <Card mb="36px" p="0px">
           <VStack spacing="0" align="stretch" px="20px">
-            {reviewItems.map((item, i) => <ReviewRow key={item.id} item={item} isLast={i === reviewItems.length - 1} />)}
+            {reviewItems.map((item, i) => (
+              <ReviewRow
+                key={item.id}
+                item={item}
+                isLast={i === reviewItems.length - 1}
+                onGrade={handleReviewGrade}
+                isSubmitting={reviewingId === item.id}
+              />
+            ))}
           </VStack>
         </Card>
       </>}

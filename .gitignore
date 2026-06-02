@@ -3,7 +3,6 @@
 # dependencies
 node_modules
 /node_modules
-package-lock.json
 yarn.lock
 /.pnp
 .pnp.js
@@ -28,6 +27,7 @@ yarn-debug.log*
 yarn-error.log*
 *.pem
 .pnpm-debug.log*
+data/*.sqlite*
 
 # nextjs
 /.next/

@@ -18,10 +18,8 @@ const createPrompt = (inputCode: string) => {
 export const OpenAIStream = async (
   inputCode: string,
   model: string,
-  key: string | undefined,
 ) => {
   const apiKey =
-    key ||
     process.env.OPENAI_API_KEY ||
     process.env.NEXT_PUBLIC_OPENAI_API_KEY;
 

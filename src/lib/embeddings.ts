@@ -6,7 +6,7 @@ export interface EmbeddingResult {
   model: string;
 }
 
-const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small';
+export const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-small';
 
 function parseResponse(data: unknown): number[] {
   const v = data as { data?: Array<{ embedding?: unknown }>; embedding?: unknown };

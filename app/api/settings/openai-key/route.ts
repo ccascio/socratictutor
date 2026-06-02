@@ -1,11 +1,16 @@
 import path from 'path';
 import { NextResponse } from 'next/server';
 import { upsertEnvValue } from '@/utils/envFile';
+import { isLocalRequest, parseJsonBody } from '@/lib/apiValidation';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
 const ENV_KEY = 'OPENAI_API_KEY';
 const LEGACY_ENV_KEY = 'NEXT_PUBLIC_OPENAI_API_KEY';
+const SaveKeySchema = z.object({
+  apiKey: z.string().trim().min(1, 'apiKey must not be empty.').regex(/^sk-/, 'OpenAI API keys should start with sk-.'),
+});
 
 export async function GET(): Promise<NextResponse> {
   const source = getConfiguredOpenAIKeySource();
@@ -18,22 +23,16 @@ export async function GET(): Promise<NextResponse> {
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const body = (await req.json()) as { apiKey?: unknown };
-    const apiKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : '';
-
-    if (!apiKey) {
+    if (!isLocalRequest(req)) {
       return NextResponse.json(
-        { ok: false, error: 'apiKey must not be empty.' },
-        { status: 400 },
+        { ok: false, error: 'Saving API keys is only available from localhost.' },
+        { status: 403 },
       );
     }
 
-    if (!apiKey.startsWith('sk-')) {
-      return NextResponse.json(
-        { ok: false, error: 'OpenAI API keys should start with sk-.' },
-        { status: 400 },
-      );
-    }
+    const parsed = await parseJsonBody(req, SaveKeySchema);
+    if ('response' in parsed) return parsed.response;
+    const { apiKey } = parsed.data;
 
     await upsertEnvValue(path.join(process.cwd(), '.env'), ENV_KEY, apiKey);
     process.env[ENV_KEY] = apiKey;
@@ -46,14 +45,6 @@ export async function POST(req: Request): Promise<NextResponse> {
       { status: 500 },
     );
   }
-}
-
-function getConfiguredOpenAIKey(): string {
-  return (
-    process.env[ENV_KEY]?.trim() ||
-    process.env[LEGACY_ENV_KEY]?.trim() ||
-    ''
-  );
 }
 
 function getConfiguredOpenAIKeySource(): string | null {

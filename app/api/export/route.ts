@@ -22,9 +22,13 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (format === 'pdf') {
     const sessionMisconceptions = listMisconceptions(DEFAULT_USER_ID).filter(m => m.sessionId === sessionId);
     const generatedAt = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const element = createElement(SessionPdf, { artifact, misconceptions: sessionMisconceptions, generatedAt });
+    const element = createElement(SessionPdf, {
+      artifact,
+      misconceptions: sessionMisconceptions,
+      generatedAt,
+    }) as unknown as Parameters<typeof renderToBuffer>[0];
     const buffer = await renderToBuffer(element);
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': `attachment; filename="session-${sessionId}.pdf"`,

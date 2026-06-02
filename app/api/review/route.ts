@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server';
 import { listReviewItems, updateReviewItem, DEFAULT_USER_ID } from '@/lib/repos';
 import { seedDemoData } from '@/lib/seed';
+import { parseJsonBody } from '@/lib/apiValidation';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
+
+const UpdateReviewSchema = z.object({
+  id: z.string().trim().min(1),
+  quality: z.union([
+    z.literal(0),
+    z.literal(1),
+    z.literal(2),
+    z.literal(3),
+    z.literal(4),
+    z.literal(5),
+  ]),
+});
 
 export async function GET(): Promise<NextResponse> {
   seedDemoData();
@@ -10,7 +24,12 @@ export async function GET(): Promise<NextResponse> {
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
-  const { id, quality } = await req.json() as { id: string; quality: 0 | 1 | 2 | 3 | 4 | 5 };
-  updateReviewItem(id, quality);
+  seedDemoData();
+  const parsed = await parseJsonBody(req, UpdateReviewSchema);
+  if ('response' in parsed) return parsed.response;
+  const { id, quality } = parsed.data;
+  if (!updateReviewItem(id, quality)) {
+    return NextResponse.json({ error: 'Review item not found' }, { status: 404 });
+  }
   return NextResponse.json({ ok: true });
 }

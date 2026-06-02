@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import { getSession, getMessages, appendMessage, upsertConcept, createMisconception, getGoal, getLearnerProfile, DEFAULT_USER_ID, scheduleReview } from '@/lib/repos';
 import { runSocraticTurn, generateOpeningQuestion } from '@/lib/socraticEngine';
 import { seedDemoData } from '@/lib/seed';
+import { parseJsonBody } from '@/lib/apiValidation';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
+
+const ChatTurnSchema = z.object({
+  userMessage: z.string().trim().min(1).max(8000).optional(),
+});
 
 // POST /api/sessions/[id]/chat
 // Body: { userMessage?: string }  — omit userMessage to get the opening question
@@ -13,7 +19,9 @@ export async function POST(
 ): Promise<NextResponse> {
   seedDemoData();
   const { id: sessionId } = await context.params;
-  const { userMessage } = (await req.json()) as { userMessage?: string };
+  const parsed = await parseJsonBody(req, ChatTurnSchema);
+  if ('response' in parsed) return parsed.response;
+  const { userMessage } = parsed.data;
 
   const session = getSession(sessionId);
   if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
@@ -25,6 +33,20 @@ export async function POST(
 
   // Opening question (no user message yet)
   if (!userMessage) {
+    const existingMessages = getMessages(sessionId);
+    if (existingMessages.length > 0) {
+      const lastTutorMessage = [...existingMessages].reverse().find(m => m.role === 'tutor');
+      return NextResponse.json({
+        tutorMessage: lastTutorMessage?.content ?? existingMessages[existingMessages.length - 1].content,
+        mode: 'asking',
+        conceptsExtracted: [],
+        misconception: null,
+        gapDetected: null,
+        confidenceScore: 0,
+        messages: existingMessages,
+      });
+    }
+
     const question = await generateOpeningQuestion({
       goalTopic: goal.topic,
       currentLevel: goal.currentLevel,
@@ -32,7 +54,15 @@ export async function POST(
       motivation: goal.motivation,
     });
     appendMessage(sessionId, 'tutor', question);
-    return NextResponse.json({ tutorMessage: question, mode: 'asking', conceptsExtracted: [], misconception: null, gapDetected: null, confidenceScore: 0 });
+    return NextResponse.json({
+      tutorMessage: question,
+      mode: 'asking',
+      conceptsExtracted: [],
+      misconception: null,
+      gapDetected: null,
+      confidenceScore: 0,
+      messages: [{ role: 'tutor', content: question }],
+    });
   }
 
   // Store user message

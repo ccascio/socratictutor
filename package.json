@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.67",
@@ -53,7 +53,7 @@
     "@types/react": "18.0.31",
     "@types/react-dom": "18.0.11",
     "autoprefixer": "^10.4.14",
-    "eslint": "8.37.0",
+    "eslint": "^8.57.1",
     "eslint-config-next": "^15.1.6",
     "eventsource": "^2.0.2",
     "playwright": "^1.60.0",
