@@ -1,18 +1,17 @@
 'use client';
-import { ButtonProps } from '@chakra-ui/react';
 import NextLink, { LinkProps as NextLinkProps } from 'next/link';
-
-import { Button } from '@chakra-ui/react';
+import { chakra } from '@chakra-ui/react';
+import { ButtonProps } from '@chakra-ui/react';
 
 type LinkProps = ButtonProps & NextLinkProps;
 
+const ChakraNextLink = chakra(NextLink);
+
 function Link({ href, children, ...props }: LinkProps) {
   return (
-    <NextLink href={href} passHref legacyBehavior>
-      <Button as="a" variant="a" {...props}>
-        {children}
-      </Button>
-    </NextLink>
+    <ChakraNextLink href={href} {...props}>
+      {children}
+    </ChakraNextLink>
   );
 }
 

@@ -1,428 +1,175 @@
 'use client';
-/*eslint-disable*/
 
-import Link from '@/components/link/Link';
-import MessageBoxChat from '@/components/MessageBox';
-import { ChatBody, OpenAIModel } from '@/types/types';
 import {
-  Accordion,
-  AccordionButton,
-  AccordionIcon,
-  AccordionItem,
-  AccordionPanel,
-  Box,
-  Button,
-  Flex,
-  Icon,
-  Img,
-  Input,
-  Text,
-  useColorModeValue,
+  Badge, Box, Button, Divider, Flex, Grid, Icon,
+  Progress, Spinner, Text, VStack, useColorModeValue,
 } from '@chakra-ui/react';
+import { MdAdd, MdAutoAwesome, MdBolt, MdChevronRight, MdWarning } from 'react-icons/md';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { MdAutoAwesome, MdBolt, MdEdit, MdPerson } from 'react-icons/md';
-import Bg from '../public/img/chat/bg-image.png';
+import Card from '@/components/card/Card';
+import { LearningGoal, ReviewItem, Session } from '@/types/learning';
 
-export default function Chat(props: { apiKeyApp: string }) {
-  // Input States
-  const [inputOnSubmit, setInputOnSubmit] = useState<string>('');
-  const [inputCode, setInputCode] = useState<string>('');
-  // Response message
-  const [outputCode, setOutputCode] = useState<string>('');
-  // ChatGPT model
-  const [model, setModel] = useState<OpenAIModel>('gpt-4o');
-  // Loading state
-  const [loading, setLoading] = useState<boolean>(false);
-
-  // API Key
-  // const [apiKey, setApiKey] = useState<string>(apiKeyApp);
-  const borderColor = useColorModeValue('gray.200', 'whiteAlpha.200');
-  const inputColor = useColorModeValue('navy.700', 'white');
-  const iconColor = useColorModeValue('brand.500', 'white');
-  const bgIcon = useColorModeValue(
-    'linear-gradient(180deg, #FBFBFF 0%, #CACAFF 100%)',
-    'whiteAlpha.200',
-  );
-  const brandColor = useColorModeValue('brand.500', 'white');
-  const buttonBg = useColorModeValue('white', 'whiteAlpha.100');
-  const gray = useColorModeValue('gray.500', 'white');
-  const buttonShadow = useColorModeValue(
-    '14px 27px 45px rgba(112, 144, 176, 0.2)',
-    'none',
-  );
+function GoalCard({ goal, onContinue }: { goal: LearningGoal; onContinue: () => void }) {
   const textColor = useColorModeValue('navy.700', 'white');
-  const placeholderColor = useColorModeValue(
-    { color: 'gray.500' },
-    { color: 'whiteAlpha.600' },
+  const subColor = useColorModeValue('gray.500', 'gray.400');
+  return (
+    <Card>
+      <Flex direction="column" h="100%">
+        <Flex align="center" mb="14px">
+          <Flex borderRadius="full" justify="center" align="center"
+            bg="linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%)"
+            w="40px" h="40px" me="12px" flexShrink={0}>
+            <Icon as={MdAutoAwesome} color="white" w="18px" h="18px" />
+          </Flex>
+          <Box flex="1" minW="0">
+            <Text color={textColor} fontWeight="700" fontSize="md" noOfLines={1}>{goal.topic}</Text>
+            <Text color={subColor} fontSize="xs">
+              {goal.sessionCount} session{goal.sessionCount !== 1 ? 's' : ''} · {goal.weakConceptCount} weak
+            </Text>
+          </Box>
+        </Flex>
+        <Text color={subColor} fontSize="xs" mb="6px">Mastery</Text>
+        <Progress value={goal.masteryPercent} size="sm" borderRadius="full" colorScheme="brand" mb="6px" />
+        <Flex justify="space-between" align="center" mb="18px">
+          <Text color={textColor} fontWeight="700" fontSize="sm">{goal.masteryPercent}%</Text>
+          <Text color={subColor} fontSize="xs">
+            Last: {goal.lastSessionAt
+              ? new Date(goal.lastSessionAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+              : 'never'}
+          </Text>
+        </Flex>
+        <Button variant="outline" size="sm" borderRadius="10px" borderColor="brand.500" color="brand.500"
+          rightIcon={<Icon as={MdChevronRight} />} onClick={onContinue} mt="auto" _hover={{ bg: 'brand.100' }}>
+          Continue
+        </Button>
+      </Flex>
+    </Card>
   );
-  const handleTranslate = async () => {
-    let apiKey = localStorage.getItem('apiKey');
-    setInputOnSubmit(inputCode);
+}
 
-    // Chat post conditions(maximum number of characters, valid message etc.)
-    const maxCodeLength = model === 'gpt-4o' ? 700 : 700;
-
-    if (!apiKey?.includes('sk-')) {
-      alert('Please enter an API key.');
-      return;
-    }
-
-    if (!inputCode) {
-      alert('Please enter your message.');
-      return;
-    }
-
-    if (inputCode.length > maxCodeLength) {
-      alert(
-        `Please enter code less than ${maxCodeLength} characters. You are currently at ${inputCode.length} characters.`,
-      );
-      return;
-    }
-    setOutputCode(' ');
-    setLoading(true);
-    const controller = new AbortController();
-    const body: ChatBody = {
-      inputCode,
-      model,
-      apiKey,
-    };
-
-    // -------------- Fetch --------------
-    const response = await fetch('./api/chatAPI', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      signal: controller.signal,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      setLoading(false);
-      if (response) {
-        alert(
-          'Something went wrong went fetching from the API. Make sure to use a valid API key.',
-        );
-      }
-      return;
-    }
-
-    const data = response.body;
-
-    if (!data) {
-      setLoading(false);
-      alert('Something went wrong');
-      return;
-    }
-
-    const reader = data.getReader();
-    const decoder = new TextDecoder();
-    let done = false;
-
-    while (!done) {
-      setLoading(true);
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      const chunkValue = decoder.decode(value);
-      setOutputCode((prevCode) => prevCode + chunkValue);
-    }
-
-    setLoading(false);
+function ReviewRow({ item, isLast }: { item: ReviewItem; isLast: boolean }) {
+  const textColor = useColorModeValue('navy.700', 'white');
+  const subColor = useColorModeValue('gray.500', 'gray.400');
+  const dividerColor = useColorModeValue('gray.100', 'whiteAlpha.100');
+  const iconMap = {
+    misconception: { icon: MdWarning, color: 'orange.400', label: 'Misconception' },
+    concept: { icon: MdAutoAwesome, color: 'blue.400', label: 'Concept' },
+    flashcard: { icon: MdBolt, color: 'purple.400', label: 'Flashcard' },
   };
-  // -------------- Copy Response --------------
-  // const copyToClipboard = (text: string) => {
-  //   const el = document.createElement('textarea');
-  //   el.value = text;
-  //   document.body.appendChild(el);
-  //   el.select();
-  //   document.execCommand('copy');
-  //   document.body.removeChild(el);
-  // };
+  const { icon, color, label } = iconMap[item.sourceType];
+  return (
+    <>
+      <Flex align="center" py="12px">
+        <Icon as={icon} color={color} w="18px" h="18px" me="12px" flexShrink={0} />
+        <Box flex="1" minW="0">
+          <Text color={textColor} fontSize="sm" fontWeight="500" noOfLines={1}>{item.label}</Text>
+          <Text color={subColor} fontSize="xs">{label} · {item.goalTopic}</Text>
+        </Box>
+        {item.overdue && <Badge colorScheme="red" borderRadius="full" fontSize="xs" ms="8px">overdue</Badge>}
+      </Flex>
+      {!isLast && <Divider borderColor={dividerColor} />}
+    </>
+  );
+}
 
-  // *** Initializing apiKey with .env.local value
-  // useEffect(() => {
-  // ENV file verison
-  // const apiKeyENV = process.env.NEXT_PUBLIC_OPENAI_API_KEY
-  // if (apiKey === undefined || null) {
-  //   setApiKey(apiKeyENV)
-  // }
-  // }, [])
+function SessionRow({ session, goals, onClick }: { session: Session; goals: LearningGoal[]; onClick: () => void }) {
+  const textColor = useColorModeValue('navy.700', 'white');
+  const subColor = useColorModeValue('gray.500', 'gray.400');
+  const goal = goals.find(g => g.id === session.goalId);
+  return (
+    <Card cursor="pointer" onClick={onClick} _hover={{ boxShadow: '0 4px 20px rgba(112,144,176,0.18)' }} transition="box-shadow 0.2s" p="16px 20px">
+      <Flex align="center">
+        <Box flex="1">
+          <Text color={textColor} fontWeight="600" fontSize="sm">{session.topic}</Text>
+          <Text color={subColor} fontSize="xs" mt="2px">
+            {goal?.topic} · {session.durationMinutes} min · {session.conceptCount} concepts
+            {session.misconceptionCount > 0 ? ` · ${session.misconceptionCount} misconception` : ''}
+          </Text>
+        </Box>
+        <Text color={subColor} fontSize="xs" ms="12px" flexShrink={0}>
+          {new Date(session.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </Text>
+        <Icon as={MdChevronRight} color={subColor} ms="8px" />
+      </Flex>
+    </Card>
+  );
+}
 
-  const handleChange = (Event: any) => {
-    setInputCode(Event.target.value);
+export default function Dashboard() {
+  const router = useRouter();
+  const textColor = useColorModeValue('navy.700', 'white');
+  const subColor = useColorModeValue('gray.500', 'gray.400');
+
+  const [goals, setGoals] = useState<LearningGoal[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [reviewItems, setReviewItems] = useState<ReviewItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/goals').then(r => r.json()),
+      fetch('/api/sessions').then(r => r.json()),
+      fetch('/api/review').then(r => r.json()),
+    ]).then(([g, s, r]) => {
+      setGoals(g as LearningGoal[]);
+      setSessions(s as Session[]);
+      setReviewItems(r as ReviewItem[]);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const overdueCount = reviewItems.filter(r => r.overdue).length;
+
+  const handleContinueGoal = async (goalId: string) => {
+    const res = await fetch('/api/sessions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goalId }) });
+    const { id } = await res.json() as { id: string };
+    router.push(`/session/${id}`);
   };
+
+  if (loading) return <Flex align="center" justify="center" minH="60vh"><Spinner color="brand.500" size="lg" /></Flex>;
 
   return (
-    <Flex
-      w="100%"
-      pt={{ base: '70px', md: '0px' }}
-      direction="column"
-      position="relative"
-    >
-      <Img
-        src={Bg.src}
-        position={'absolute'}
-        w="350px"
-        left="50%"
-        top="50%"
-        transform={'translate(-50%, -50%)'}
-      />
-      <Flex
-        direction="column"
-        mx="auto"
-        w={{ base: '100%', md: '100%', xl: '100%' }}
-        minH={{ base: '75vh', '2xl': '85vh' }}
-        maxW="1000px"
-      >
-        {/* Model Change */}
-        <Flex direction={'column'} w="100%" mb={outputCode ? '20px' : 'auto'}>
-          <Flex
-            mx="auto"
-            zIndex="2"
-            w="max-content"
-            mb="20px"
-            borderRadius="60px"
-          >
-            <Flex
-              cursor={'pointer'}
-              transition="0.3s"
-              justify={'center'}
-              align="center"
-              bg={model === 'gpt-4o' ? buttonBg : 'transparent'}
-              w="174px"
-              h="70px"
-              boxShadow={model === 'gpt-4o' ? buttonShadow : 'none'}
-              borderRadius="14px"
-              color={textColor}
-              fontSize="18px"
-              fontWeight={'700'}
-              onClick={() => setModel('gpt-4o')}
-            >
-              <Flex
-                borderRadius="full"
-                justify="center"
-                align="center"
-                bg={bgIcon}
-                me="10px"
-                h="39px"
-                w="39px"
-              >
-                <Icon
-                  as={MdAutoAwesome}
-                  width="20px"
-                  height="20px"
-                  color={iconColor}
-                />
-              </Flex>
-              GPT-4o
-            </Flex>
-            <Flex
-              cursor={'pointer'}
-              transition="0.3s"
-              justify={'center'}
-              align="center"
-              bg={model === 'gpt-3.5-turbo' ? buttonBg : 'transparent'}
-              w="164px"
-              h="70px"
-              boxShadow={model === 'gpt-3.5-turbo' ? buttonShadow : 'none'}
-              borderRadius="14px"
-              color={textColor}
-              fontSize="18px"
-              fontWeight={'700'}
-              onClick={() => setModel('gpt-3.5-turbo')}
-            >
-              <Flex
-                borderRadius="full"
-                justify="center"
-                align="center"
-                bg={bgIcon}
-                me="10px"
-                h="39px"
-                w="39px"
-              >
-                <Icon
-                  as={MdBolt}
-                  width="20px"
-                  height="20px"
-                  color={iconColor}
-                />
-              </Flex>
-              GPT-3.5
-            </Flex>
-          </Flex>
-
-          <Accordion color={gray} allowToggle w="100%" my="0px" mx="auto">
-            <AccordionItem border="none">
-              <AccordionButton
-                borderBottom="0px solid"
-                maxW="max-content"
-                mx="auto"
-                _hover={{ border: '0px solid', bg: 'none' }}
-                _focus={{ border: '0px solid', bg: 'none' }}
-              >
-                <Box flex="1" textAlign="left">
-                  <Text color={gray} fontWeight="500" fontSize="sm">
-                    No plugins added
-                  </Text>
-                </Box>
-                <AccordionIcon color={gray} />
-              </AccordionButton>
-              <AccordionPanel mx="auto" w="max-content" p="0px 0px 10px 0px">
-                <Text
-                  color={gray}
-                  fontWeight="500"
-                  fontSize="sm"
-                  textAlign={'center'}
-                >
-                  This is a cool text example.
-                </Text>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
-        </Flex>
-        {/* Main Box */}
-        <Flex
-          direction="column"
-          w="100%"
-          mx="auto"
-          display={outputCode ? 'flex' : 'none'}
-          mb={'auto'}
-        >
-          <Flex w="100%" align={'center'} mb="10px">
-            <Flex
-              borderRadius="full"
-              justify="center"
-              align="center"
-              bg={'transparent'}
-              border="1px solid"
-              borderColor={borderColor}
-              me="20px"
-              h="40px"
-              minH="40px"
-              minW="40px"
-            >
-              <Icon
-                as={MdPerson}
-                width="20px"
-                height="20px"
-                color={brandColor}
-              />
-            </Flex>
-            <Flex
-              p="22px"
-              border="1px solid"
-              borderColor={borderColor}
-              borderRadius="14px"
-              w="100%"
-              zIndex={'2'}
-            >
-              <Text
-                color={textColor}
-                fontWeight="600"
-                fontSize={{ base: 'sm', md: 'md' }}
-                lineHeight={{ base: '24px', md: '26px' }}
-              >
-                {inputOnSubmit}
-              </Text>
-              <Icon
-                cursor="pointer"
-                as={MdEdit}
-                ms="auto"
-                width="20px"
-                height="20px"
-                color={gray}
-              />
-            </Flex>
-          </Flex>
-          <Flex w="100%">
-            <Flex
-              borderRadius="full"
-              justify="center"
-              align="center"
-              bg={'linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%)'}
-              me="20px"
-              h="40px"
-              minH="40px"
-              minW="40px"
-            >
-              <Icon
-                as={MdAutoAwesome}
-                width="20px"
-                height="20px"
-                color="white"
-              />
-            </Flex>
-            <MessageBoxChat output={outputCode} />
-          </Flex>
-        </Flex>
-        {/* Chat Input */}
-        <Flex
-          ms={{ base: '0px', xl: '60px' }}
-          mt="20px"
-          justifySelf={'flex-end'}
-        >
-          <Input
-            minH="54px"
-            h="100%"
-            border="1px solid"
-            borderColor={borderColor}
-            borderRadius="45px"
-            p="15px 20px"
-            me="10px"
-            fontSize="sm"
-            fontWeight="500"
-            _focus={{ borderColor: 'none' }}
-            color={inputColor}
-            _placeholder={placeholderColor}
-            placeholder="Type your message here..."
-            onChange={handleChange}
-          />
-          <Button
-            variant="primary"
-            py="20px"
-            px="16px"
-            fontSize="sm"
-            borderRadius="45px"
-            ms="auto"
-            w={{ base: '160px', md: '210px' }}
-            h="54px"
-            _hover={{
-              boxShadow:
-                '0px 21px 27px -10px rgba(96, 60, 255, 0.48) !important',
-              bg: 'linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%) !important',
-              _disabled: {
-                bg: 'linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%)',
-              },
-            }}
-            onClick={handleTranslate}
-            isLoading={loading ? true : false}
-          >
-            Submit
-          </Button>
-        </Flex>
-
-        <Flex
-          justify="center"
-          mt="20px"
-          direction={{ base: 'column', md: 'row' }}
-          alignItems="center"
-        >
-          <Text fontSize="xs" textAlign="center" color={gray}>
-            Free Research Preview. ChatGPT may produce inaccurate information
-            about people, places, or facts.
+    <Box w="100%" maxW="1200px">
+      <Flex justify="space-between" align="center" mb="32px" wrap="wrap" gap="12px">
+        <Box>
+          <Text fontSize="2xl" fontWeight="700" color={textColor}>Good morning!</Text>
+          <Text color={subColor} fontSize="sm">
+            {overdueCount > 0 ? `${overdueCount} overdue review${overdueCount > 1 ? 's' : ''} waiting` : 'All reviews up to date'}
           </Text>
-          <Link href="https://help.openai.com/en/articles/6825453-chatgpt-release-notes">
-            <Text
-              fontSize="xs"
-              color={textColor}
-              fontWeight="500"
-              textDecoration="underline"
-            >
-              ChatGPT May 12 Version
-            </Text>
-          </Link>
-        </Flex>
+        </Box>
+        <Button leftIcon={<Icon as={MdAdd} />}
+          bg="linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%)" color="white" borderRadius="12px"
+          _hover={{ boxShadow: '0px 21px 27px -10px rgba(96,60,255,0.48)', opacity: 0.92 }}
+          onClick={() => router.push('/goal/new')}>
+          New Goal
+        </Button>
       </Flex>
-    </Flex>
+
+      <Text fontSize="lg" fontWeight="700" color={textColor} mb="16px">Active Goals</Text>
+      {goals.length === 0
+        ? <Text color={subColor} fontSize="sm" mb="36px">No active goals yet. Create one to start learning.</Text>
+        : <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', xl: 'repeat(3, 1fr)' }} gap="20px" mb="36px">
+          {goals.map(g => <GoalCard key={g.id} goal={g} onContinue={() => handleContinueGoal(g.id)} />)}
+        </Grid>}
+
+      {reviewItems.length > 0 && <>
+        <Flex align="center" mb="16px" gap="8px">
+          <Text fontSize="lg" fontWeight="700" color={textColor}>Review Due</Text>
+          <Badge colorScheme={overdueCount > 0 ? 'red' : 'gray'} borderRadius="full" px="8px">{reviewItems.length}</Badge>
+        </Flex>
+        <Card mb="36px" p="0px">
+          <VStack spacing="0" align="stretch" px="20px">
+            {reviewItems.map((item, i) => <ReviewRow key={item.id} item={item} isLast={i === reviewItems.length - 1} />)}
+          </VStack>
+        </Card>
+      </>}
+
+      <Text fontSize="lg" fontWeight="700" color={textColor} mb="16px">Recent Sessions</Text>
+      {sessions.length === 0
+        ? <Text color={subColor} fontSize="sm">No sessions yet.</Text>
+        : <VStack spacing="12px" align="stretch">
+          {sessions.map(s => <SessionRow key={s.id} session={s} goals={goals} onClick={() => router.push(`/session/${s.id}/summary`)} />)}
+        </VStack>}
+    </Box>
   );
 }

@@ -1,97 +1,370 @@
-# [Horizon ChatGPT AI Template](https://horizon-ui.com/chatgpt-ai-template) [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social&logo=twitter)](https://twitter.com/intent/tweet?text=Check%20Horizon%20ChatGPT%20AI%20Template,%20the%20trendiest%20open%20source%20ChatGPT%20AI%20admin%20template%20for%20%23nextjs%20and%20%23react!%0A%0Ahttps%3A//horizon-ui.com/chatgpt-ai-template/%20%20)
+Most AI education products fail because they copy ChatGPT:
 
-![version](https://img.shields.io/badge/version-3.0.0-brightgreen.svg)
-[![GitHub issues open](https://img.shields.io/github/issues/horizon-ui/chatgpt-ai-template.svg?maxAge=2592000)](https://github.com/horizon-ui/chatgpt-ai-template/issues?q=is%3Aopen+is%3Aissue)
++----------------------+
+|       CHAT           |
+|                      |
+| User                 |
+| AI                   |
+| User                 |
+| AI                   |
++----------------------+
 
-<p>&nbsp;</p>
+That interface is terrible for learning.
 
-[<img alt="Horizon UI - Tailwind CSS React Admin dashboard template" src="https://i.ibb.co/mqnbX1Y/horizon-ai-template-presentation-image-open-source.png" />](https://horizon-ui.com/ai-template)
+Knowledge becomes buried in a conversation.
 
-<p>&nbsp;</p>
+For your product, I would design it around a principle:
 
-Get started and build your dream AI web app with Horizon AI Template, the trendiest & innovative Open-Source Free ChatGPT AI Admin Template for NextJS & React!
+The chat is temporary. The knowledge is permanent.
 
----
+⸻
 
-### Introduction
+Overall Layout
 
-Horizon ChatGPT AI Template is the world's best open source OpenAI ChatGPT AI Template made with React, NextJS and Chakra UI! Start creating outstanding Chat AI SaaS Apps faster.
+Imagine something closer to:
 
-It comes with over 30+ dark/light frontend individual elements, like buttons, inputs, navbars, nav tabs, cards, or alerts, giving you the freedom of choosing and combining.
++----------------------------------------------------+
+| Logo  Search   Notifications   Profile             |
++----------------------------------------------------+
+| Learning Goals | Socratic Session | Knowledge Hub |
+|----------------|------------------|---------------|
++----------------------------------------------------+
+|                                                    |
+|   Main Workspace                                   |
+|                                                    |
++----------------------------------------------------+
 
-### Documentation
+The user spends most of the time in a workspace, not a chat.
 
-Each element is well presented in a very complex documentation. You can read more about the <a href="https://horizon-ui.com/docs-ai-template/docs/introduction?ref=readme-horizon-ai-template-free" target="_blank">documentation here.</a>
+⸻
 
-### Quick Start
+Screen 1: Learning Home
 
-Install Horizon ChatGPT AI Template by running either of the following:
+When the user opens the app:
 
-- Install NodeJS LTS from [NodeJs Official Page](https://nodejs.org/en/?ref=horizon-documentation) (NOTE: Product only works with LTS version)
+-------------------------------------------------------
+Good Morning Calo
+Continue Learning:
+-------------------------------------------------------
+AI Agents Architecture            72%
+Quantum Mechanics                 34%
+Category Theory                   12%
+-------------------------------------------------------
+Concepts To Review Today
+-------------------------------------------------------
+Embeddings
+Attention Mechanism
+Entropy
+-------------------------------------------------------
+Recent Discoveries
+-------------------------------------------------------
+"You confused vector search with retrieval."
+"Your understanding of entropy improved."
+-------------------------------------------------------
 
-Clone the repository with the following command:
+Notice:
 
-```bash
-git clone https://github.com/horizon-ui/chatgpt-ai-template.git
-```
+No chat.
 
-Run in the terminal this command:
+The focus is progress.
 
-```bash
-npm install
-```
+⸻
 
-Then run this command to start your local server
+Screen 2: Learning Goal Creation
 
-```bash
-npm run dev
-```
+Instead of:
 
-### Your API Key is not working?
+What do you want to learn?
 
-- Make sure you have an [OpenAI account](https://platform.openai.com/account) and a valid API key to use ChatGPT. We don't sell API keys.
-- Make sure you have your billing info added in [OpenAI Billing page](https://platform.openai.com/account/billing/overview). Without billing info, your API key will not work.
-- The app will connect to the OpenAI API server to check if your API Key is working properly.
+The system guides.
 
-### Example Page
+Topic
 
-If you want to get inspiration or just show something directly to your clients, you can jump start your development with our pre-built example page. You will be able to quickly set up the basic structure for your web project.
+Artificial Intelligence
 
-View <a href="https://horizon-ui.com/chatgpt-ai-template/?ref=readme-horizon-ai-template-free" target="_blank">example pages here.</a>
+Desired depth
 
-### Versions
+○ Curious
+○ Practitioner
+○ Professional
+○ Expert
 
-| Free Version                                                                                                                                                         | PRO Version                                                                                                                                                                   |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![Horizon ChatGPT AI Template](https://i.ibb.co/Qmym1qt/horizon-ai-template-presentation-image-open-source.png)](https://github.com/horizon-ui/chatgpt-ai-template) | [![Horizon AI Template PRO](https://i.ibb.co/ChL2fvf/horizon-ai-template-presentation-image.png)](https://www.horizon-ui.com/ai-template?ref=readme-horizon-ai-template-free) |
+Time commitment
 
-### Figma Version
+15 min/day
+30 min/day
+1 hour/day
 
-Horizon AI Template is available in Figma format as well! [Check it out here](https://www.figma.com/community/file/1253038328954459768)! 🎨
+Learning style
 
-### Reporting Issues
+○ Visual
+○ Mathematical
+○ Conceptual
+○ Practical
 
-We use GitHub Issues as the official bug tracker for the Horizon UI. Here are
-some advices for our users that want to report an issue:
+⸻
 
-1. Make sure that you are using the latest version of the Horizon AI Template.
-   Check the CHANGELOG from your dashboard on our
-   [CHANGE LOG File](https://github.com/horizon-ui/chatgpt-ai-template/blob/main/CHANGELOG.md?ref=readme-horizon-ai-template-free).
-2. Providing us reproducible steps for the issue will shorten the time it takes
-   for it to be fixed.
-3. Some issues may be browser specific, so specifying in what browser you
-   encountered the issue might help.
+Screen 3: Socratic Workspace
 
----
+This is the heart.
 
-### Community
+Instead of:
 
-Connect with the community! Feel free to ask questions, report issues, and meet new people that already use Horizon AI Template!
+ChatGPT style
 
-💬 [Join the #HorizonUI Discord Community!](https://discord.gg/f6tEKFBd4m)
+I would create:
 
-### Copyright and license
++------------------------------------------------+
+| Conversation           | Understanding Model   |
+|                         |                       |
+| Tutor                  | Concepts              |
+| User                   | Mastery              |
+| Tutor                  | Misconceptions        |
+| User                   | Confidence            |
+|                         |                       |
++------------------------------------------------+
 
-⭐️ [Copyright 2023 Horizon UI ](https://www.horizon-ui.com/?ref=readme-horizon-ai-template-free)
+Real-time learning analysis.
 
-📄 [Horizon UI License](https://horizon-ui.notion.site/End-User-License-Agreement-8fb09441ea8c4c08b60c37996195a6d5)
+While the conversation happens, the right side updates.
+
+⸻
+
+Example:
+
+Concepts
+✓ Embeddings
+✓ Semantic Search
+⚠ Vector Databases
+✗ Hybrid Retrieval
+
+The user immediately sees what they know.
+
+⸻
+
+Dynamic Concept Cards
+
+As concepts emerge, cards appear.
+
+Example:
+
+----------------------------------
+Concept: Embeddings
+Mastery: 73%
+Strengths:
+✓ Similarity Search
+Weaknesses:
+⚠ Dimensionality
+Misconceptions:
+⚠ Embeddings store meaning
+Next Review:
+Tomorrow
+----------------------------------
+
+These cards become the permanent memory.
+
+⸻
+
+Misconception Tracker
+
+One of the most valuable screens.
+
+---------------------------------------
+Misconceptions
+---------------------------------------
+Topic: Transformers
+You said:
+"Attention stores knowledge"
+Correction:
+Attention routes information.
+Status:
+Needs reinforcement
+Detected:
+3 times
+---------------------------------------
+
+This is incredibly powerful psychologically.
+
+People remember mistakes.
+
+⸻
+
+Session Debrief
+
+After every lesson:
+
+---------------------------------------
+Today's Learning Session
+---------------------------------------
+Questions answered:
+17
+Concepts learned:
+4
+Misconceptions found:
+2
+Mastery gained:
++11%
+Confidence:
+Medium
+Next lesson:
+Retrieval-Augmented Generation
+---------------------------------------
+
+Then:
+
+Generate
+[ ] Flashcards
+[ ] Notes
+[ ] Quiz
+[ ] Mind Map
+
+One click.
+
+⸻
+
+Knowledge Hub
+
+Think of it as the user’s personal Wikipedia.
+
+Artificial Intelligence
+├── Neural Networks
+├── Transformers
+├── Embeddings
+├── RAG
+├── Agents
+└── Evaluation
+
+Every node is searchable.
+
+Click:
+
+Embeddings
+
+Shows:
+
+* explanations
+* previous answers
+* misconceptions
+* quizzes
+* related concepts
+* sessions where discussed
+
+⸻
+
+Knowledge Graph (Later)
+
+Many founders start here.
+
+I wouldn’t.
+
+But later:
+
+RAG
+ |
+ ├── Embeddings
+ |
+ ├── Retrieval
+ |
+ ├── Vector DB
+ |
+ └── Re-ranking
+
+Node colors:
+
+Green = mastered
+Yellow = improving
+Red = weak
+
+This is motivational.
+
+⸻
+
+Search
+
+Search should feel magical.
+
+Search bar:
+
+Ask your learning history...
+
+Examples:
+
+Where did I misunderstand entropy?
+Show all AI concepts I've mastered.
+Which topics are blocking my understanding of RAG?
+What concepts have I not reviewed for 2 months?
+
+The search operates over the entire learning memory.
+
+⸻
+
+Review Dashboard
+
+----------------------------------
+Review Queue
+----------------------------------
+Embeddings              2 days overdue
+Attention               Today
+Chunking                Tomorrow
+Estimated Time:
+8 minutes
+----------------------------------
+
+Very Duolingo-like.
+
+⸻
+
+Mobile Experience
+
+Important insight:
+
+The dashboard is desktop-first.
+
+The review experience is mobile-first.
+
+Desktop:
+
+* learning
+* exploration
+* deep sessions
+
+Mobile:
+
+* flashcards
+* quizzes
+* reviews
+* daily streak
+
+⸻
+
+The killer feature
+
+If I were building this today, the killer screen would be:
+
+“How You Think”
+
+A dashboard showing:
+
+Learning Profile
+Strengths:
+✓ Systems Thinking
+✓ Architecture
+✓ Abstraction
+Weaknesses:
+⚠ Mathematical Rigor
+⚠ Memorization
+Common Mistakes:
+⚠ Jumping to advanced concepts
+⚠ Skipping foundations
+Preferred Learning Style:
+Conceptual
+
+Not:
+
+What do you know?
+
+But:
+
+How do you learn?
+
+That is something ChatGPT, Claude, Gemini, Perplexity, and most AI tutors do not really provide. It transforms the product from an AI tutor into a personal cognitive coach. For someone like you—who enjoys understanding deep systems rather than memorizing facts—that screen could become more valuable than the lessons themselves.

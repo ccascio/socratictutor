@@ -8,7 +8,6 @@ import {
   AccordionIcon,
   AccordionItem,
   AccordionPanel,
-  Badge,
   Box,
   Flex,
   HStack,
@@ -17,10 +16,8 @@ import {
   Icon,
   ListItem,
   useColorModeValue,
-  Link,
 } from '@chakra-ui/react';
 import { FaCircle } from 'react-icons/fa';
-import { IoMdAdd } from 'react-icons/io';
 import NavLink from '@/components/link/NavLink';
 import { IRoute } from '@/types/navigation';
 import { PropsWithChildren, useCallback } from 'react';
@@ -163,23 +160,6 @@ export function SidebarLinks(props: SidebarLinksProps) {
                   </List>
                 </AccordionPanel>
               </AccordionItem>
-              <Link
-                isExternal
-                href="https://horizon-ui.com/ai-template"
-                mt="6px"
-              >
-                <Badge
-                  display={{ base: 'flex', lg: 'none', xl: 'flex' }}
-                  colorScheme="brand"
-                  borderRadius="25px"
-                  color="brand.500"
-                  textTransform={'none'}
-                  letterSpacing="0px"
-                  px="8px"
-                >
-                  PRO
-                </Badge>
-              </Link>
             </Flex>
           </Accordion>
         );
@@ -202,7 +182,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                     activeRoute(route.path.toLowerCase()) ? '22px' : '26px'
                   }
                 >
-                  {route.name === 'Chat UI' ? (
+                  {!route.disabled ? (
                     <NavLink
                       href={
                         route.layout ? route.layout + route.path : route.path
@@ -217,9 +197,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                       >
                         <Box
                           color={
-                            route.disabled
-                              ? gray
-                              : activeRoute(route.path.toLowerCase())
+                            activeRoute(route.path.toLowerCase())
                               ? activeIcon
                               : inactiveColor
                           }
@@ -231,9 +209,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                         <Text
                           me="auto"
                           color={
-                            route.disabled
-                              ? gray
-                              : activeRoute(route.path.toLowerCase())
+                            activeRoute(route.path.toLowerCase())
                               ? activeColor
                               : 'gray.500'
                           }
@@ -254,13 +230,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                     >
                       <Box
                         opacity="0.4"
-                        color={
-                          route.disabled
-                            ? gray
-                            : activeRoute(route.path.toLowerCase())
-                            ? activeIcon
-                            : inactiveColor
-                        }
+                        color={gray}
                         me="12px"
                         mt="6px"
                       >
@@ -269,35 +239,13 @@ export function SidebarLinks(props: SidebarLinksProps) {
                       <Text
                         opacity="0.4"
                         me="auto"
-                        color={
-                          route.disabled
-                            ? gray
-                            : activeRoute(route.path.toLowerCase())
-                            ? activeColor
-                            : 'gray.500'
-                        }
+                        color={gray}
                         fontWeight="500"
                         letterSpacing="0px"
                         fontSize="sm"
                       >
                         {route.name}
                       </Text>
-                      <Link
-                        isExternal
-                        href="https://horizon-ui.com/ai-template"
-                      >
-                        <Badge
-                          display={{ base: 'flex', lg: 'none', xl: 'flex' }}
-                          colorScheme="brand"
-                          borderRadius="25px"
-                          color="brand.500"
-                          textTransform={'none'}
-                          letterSpacing="0px"
-                          px="8px"
-                        >
-                          PRO
-                        </Badge>
-                      </Link>
                     </Flex>
                   )}
                 </HStack>

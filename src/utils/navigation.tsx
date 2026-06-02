@@ -11,7 +11,11 @@ export const findCurrentRoute = (
       const found = findCurrentRoute(route.items, pathname);
       if (found) return found;
     }
-    if (pathname?.match(route.path) && route) {
+    const isMatch =
+      route.path === '/'
+        ? pathname === '/'
+        : pathname?.startsWith(route.path);
+    if (isMatch && route) {
       return route;
     }
   }

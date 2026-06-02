@@ -4,7 +4,7 @@ const nextConfig = {
   reactStrictMode: false,
   basePath: process.env.NEXT_PUBLIC_BASE_PATH,
   assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH,
-  reactStrictMode: false, // changed this to false
+  serverExternalPackages: ['better-sqlite3', '@react-pdf/renderer'],
   images: {
     domains: [
       'images.unsplash.com',

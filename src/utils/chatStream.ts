@@ -20,6 +20,17 @@ export const OpenAIStream = async (
   model: string,
   key: string | undefined,
 ) => {
+  const apiKey =
+    key ||
+    process.env.OPENAI_API_KEY ||
+    process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      'OpenAI API key is not configured. Save it in Settings -> API Key Management.',
+    );
+  }
+
   const prompt = createPrompt(inputCode);
 
   const system = { role: 'system', content: prompt };
@@ -27,7 +38,7 @@ export const OpenAIStream = async (
   const res = await fetch(`https://api.openai.com/v1/chat/completions`, {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${key || process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     method: 'POST',
     body: JSON.stringify({

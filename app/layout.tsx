@@ -1,64 +1,39 @@
 'use client';
 import React, { ReactNode } from 'react';
-import type { AppProps } from 'next/app';
-import { ChakraProvider, Box, Portal, useDisclosure } from '@chakra-ui/react';
-import theme from '@/theme/theme';
+import { Box, Portal, useDisclosure } from '@chakra-ui/react';
 import routes from '@/routes';
 import Sidebar from '@/components/sidebar/Sidebar';
 import Footer from '@/components/footer/FooterAdmin';
 import Navbar from '@/components/navbar/NavbarAdmin';
 import { getActiveRoute, getActiveNavbar } from '@/utils/navigation';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import '@/styles/App.css';
-import '@/styles/Contact.css';
-import '@/styles/Plugins.css';
-import '@/styles/MiniCalendar.css';
 import AppWrappers from './AppWrappers';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const [apiKey, setApiKey] = useState('');
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  useEffect(() => {
-    const initialKey = localStorage.getItem('apiKey');
-    console.log(initialKey);
-    if (initialKey?.includes('sk-') && apiKey !== initialKey) {
-      setApiKey(initialKey);
-    }
-  }, [apiKey]);
+  const { onOpen } = useDisclosure();
 
   return (
     <html lang="en">
-      <body id={'root'}>
+      <body id="root">
         <AppWrappers>
-          {/* <ChakraProvider theme={theme}> */}
           {pathname?.includes('register') || pathname?.includes('sign-in') ? (
             children
           ) : (
-            <Box>
-              <Sidebar setApiKey={setApiKey} routes={routes} />
+            <Box minH="100vh">
+              <Sidebar routes={routes} />
+              {/* Main content — offset by sidebar width instead of float */}
               <Box
+                ms={{ base: '0px', xl: '290px' }}
                 pt={{ base: '60px', md: '100px' }}
-                float="right"
-                minHeight="100vh"
-                height="100%"
-                overflow="auto"
-                position="relative"
-                maxHeight="100%"
-                w={{ base: '100%', xl: 'calc( 100% - 290px )' }}
-                maxWidth={{ base: '100%', xl: 'calc( 100% - 290px )' }}
-                transition="all 0.33s cubic-bezier(0.685, 0.0473, 0.346, 1)"
-                transitionDuration=".2s, .2s, .35s"
-                transitionProperty="top, bottom, width"
-                transitionTimingFunction="linear, linear, ease"
+                minH="100vh"
+                transition="margin-left 0.33s cubic-bezier(0.685, 0.0473, 0.346, 1)"
               >
                 <Portal>
                   <Box>
                     <Navbar
-                      setApiKey={setApiKey}
                       onOpen={onOpen}
-                      logoText={'Horizon UI Dashboard PRO'}
                       brandText={getActiveRoute(routes, pathname)}
                       secondary={getActiveNavbar(routes, pathname)}
                     />
@@ -66,21 +41,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </Portal>
                 <Box
                   mx="auto"
-                  p={{ base: '20px', md: '30px' }}
-                  pe="20px"
-                  minH="100vh"
-                  pt="50px"
+                  px={{ base: '16px', md: '28px' }}
+                  pt="40px"
+                  pb="40px"
+                  minH="calc(100vh - 100px)"
                 >
                   {children}
-                  {/* <Component apiKeyApp={apiKey} {...pageProps} /> */}
                 </Box>
-                <Box>
-                  <Footer />
-                </Box>
+                <Footer />
               </Box>
             </Box>
           )}
-          {/* </ChakraProvider> */}
         </AppWrappers>
       </body>
     </html>
