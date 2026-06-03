@@ -73,7 +73,8 @@ function getDb(): Database.Database {
       goal_id TEXT NOT NULL REFERENCES learning_goals(id),
       name TEXT NOT NULL,
       simple_definition TEXT NOT NULL DEFAULT '',
-      status TEXT NOT NULL DEFAULT 'unknown',
+      status TEXT NOT NULL DEFAULT 'unknown'
+        CHECK(status IN ('unknown','weak','improving','strong','mastered')),
       prerequisites TEXT NOT NULL DEFAULT '[]',
       session_count INTEGER NOT NULL DEFAULT 0,
       misconception_count INTEGER NOT NULL DEFAULT 0,
@@ -158,6 +159,28 @@ function getDb(): Database.Database {
       updated_at TEXT NOT NULL DEFAULT (datetime('now')),
       UNIQUE(query_hash, model)
     );
+
+    CREATE TABLE IF NOT EXISTS source_documents (
+      id TEXT PRIMARY KEY,
+      goal_id TEXT NOT NULL REFERENCES learning_goals(id),
+      filename TEXT NOT NULL,
+      content_text TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL DEFAULT 0,
+      uploaded_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_source_documents_goal ON source_documents(goal_id);
+
+    CREATE TABLE IF NOT EXISTS document_chunk_embeddings (
+      id TEXT PRIMARY KEY,
+      document_id TEXT NOT NULL REFERENCES source_documents(id),
+      goal_id TEXT NOT NULL REFERENCES learning_goals(id),
+      chunk_index INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      embedding BLOB NOT NULL,
+      model TEXT NOT NULL,
+      UNIQUE(document_id, chunk_index, model)
+    );
+    CREATE INDEX IF NOT EXISTS idx_doc_chunks_goal ON document_chunk_embeddings(goal_id, model);
   `);
 
   return db;

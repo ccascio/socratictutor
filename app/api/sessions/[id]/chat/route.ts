@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getSession, getMessages, appendMessage, upsertConcept, createMisconception, getGoal, getLearnerProfile, DEFAULT_USER_ID, scheduleReview } from '@/lib/repos';
+import { getSession, getMessages, appendMessage, upsertConcept, createMisconception, getGoal, getLearnerProfile, listSourceDocuments, DEFAULT_USER_ID, scheduleReview, recomputeGoalMastery } from '@/lib/repos';
+import { retrieveRelevantChunks } from '@/lib/documentRetrieval';
 import { runSocraticTurn, generateOpeningQuestion } from '@/lib/socraticEngine';
 import { seedDemoData } from '@/lib/seed';
 import { parseJsonBody } from '@/lib/apiValidation';
@@ -31,6 +32,27 @@ export async function POST(
 
   const { learningStyle } = getLearnerProfile(DEFAULT_USER_ID);
 
+  // Build source context via RAG: embed the current query and retrieve the most
+  // relevant document chunks for this goal.  For the opening question we use the
+  // goal topic + motivation as a broad semantic anchor; for subsequent turns we use
+  // the learner's actual message so the retrieved excerpt tracks the conversation.
+  //
+  // Fallback: if no chunk embeddings exist (document uploaded before RAG was added,
+  // or the embedding step failed), load the raw text and truncate — same behaviour
+  // as before.
+  const ragQuery = userMessage ?? `${goal.topic} ${goal.motivation}`;
+  const chunks = await retrieveRelevantChunks(session.goalId, ragQuery);
+  let sourceContext: string | undefined;
+  if (chunks.length > 0) {
+    sourceContext = chunks.join('\n\n---\n\n');
+  } else {
+    const flat = listSourceDocuments(session.goalId)
+      .map(d => `[${d.filename}]\n${d.contentText.slice(0, 6_000)}`)
+      .join('\n\n---\n\n')
+      .slice(0, 12_000);
+    if (flat) sourceContext = flat;
+  }
+
   // Opening question (no user message yet)
   if (!userMessage) {
     const existingMessages = getMessages(sessionId);
@@ -52,6 +74,7 @@ export async function POST(
       currentLevel: goal.currentLevel,
       learningStyle,
       motivation: goal.motivation,
+      sourceContext,
     });
     appendMessage(sessionId, 'tutor', question);
     return NextResponse.json({
@@ -78,6 +101,7 @@ export async function POST(
     learningStyle,
     conversationHistory: history.slice(0, -1).map(m => ({ role: m.role as 'tutor' | 'user', content: m.content })),
     userAnswer: userMessage,
+    sourceContext,
   });
 
   // Persist tutor message
@@ -87,14 +111,14 @@ export async function POST(
   for (const c of result.conceptsExtracted) {
     upsertConcept(DEFAULT_USER_ID, session.goalId, {
       name: c.name,
-      simpleDefinition: c.simpleDefinition,
-      status: c.status === 'confirmed' ? 'strong' : c.status === 'learning' ? 'improving' : 'weak',
+      simpleDefinition: c.simpleDefinition ?? undefined,
+      status: c.status === 'confirmed' ? 'strong' : c.status === 'learning' ? 'improving' : 'unknown',
     });
   }
 
   // Persist misconception + schedule review
   if (result.misconception) {
-    const misc = createMisconception(DEFAULT_USER_ID, sessionId, goal.topic, {
+    const misc = createMisconception(DEFAULT_USER_ID, sessionId, session.goalId, goal.topic, {
       conceptName: result.misconception.conceptName,
       text: result.misconception.text,
       correction: result.misconception.correction,
@@ -107,6 +131,9 @@ export async function POST(
       daysFromNow: 0,
     });
   }
+
+  // Roll the freshly extracted concepts up into the goal's mastery %.
+  recomputeGoalMastery(session.goalId);
 
   return NextResponse.json(result);
 }

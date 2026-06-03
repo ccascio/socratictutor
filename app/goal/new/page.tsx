@@ -13,11 +13,15 @@ import {
   Textarea,
   useColorModeValue,
 } from '@chakra-ui/react';
-import { MdArrowBack, MdArrowForward, MdCheck } from 'react-icons/md';
-import { useState } from 'react';
+import { MdArrowBack, MdArrowForward, MdCheck, MdUploadFile, MdInsertDriveFile, MdClose } from 'react-icons/md';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Card from '@/components/card/Card';
 import { GoalSetupForm } from '@/types/learning';
+import {
+  getStoredLearningStyle,
+  getStoredTargetDepth,
+} from '@/components/onboarding/onboardingStorage';
 
 const STEPS = [
   { id: 'topic', title: 'What do you want to understand?', subtitle: 'Be specific — a focused topic leads to better sessions.' },
@@ -25,6 +29,7 @@ const STEPS = [
   { id: 'depth', title: 'How deeply do you want to go?', subtitle: 'This shapes the length and complexity of your learning path.' },
   { id: 'style', title: 'How do you learn best?', subtitle: 'The tutor will adapt its analogies and explanations to your style.' },
   { id: 'motivation', title: 'Why are you learning this?', subtitle: 'Context helps the tutor connect concepts to your actual use cases.' },
+  { id: 'source', title: 'Add reference material', subtitle: 'Upload a PDF, .txt, or .md file. The tutor will ground its questions in your content. Optional — you can skip this.' },
 ] as const;
 
 const TOTAL = STEPS.length;
@@ -38,6 +43,7 @@ export default function GoalSetup() {
 
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [sourceFile, setSourceFile] = useState<File | null>(null);
   const [form, setForm] = useState<GoalSetupForm>({
     topic: '',
     currentLevel: '',
@@ -47,6 +53,14 @@ export default function GoalSetup() {
     timeAvailable: '',
   });
 
+  useEffect(() => {
+    setForm((currentForm) => ({
+      ...currentForm,
+      targetDepth: currentForm.targetDepth || getStoredTargetDepth(),
+      learningStyle: currentForm.learningStyle || getStoredLearningStyle(),
+    }));
+  }, []);
+
   const current = STEPS[step];
 
   const canAdvance = () => {
@@ -55,6 +69,7 @@ export default function GoalSetup() {
     if (current.id === 'depth') return !!form.targetDepth;
     if (current.id === 'style') return !!form.learningStyle;
     if (current.id === 'motivation') return form.motivation.trim().length > 2;
+    if (current.id === 'source') return true; // optional step — always skippable
     return false;
   };
 
@@ -78,6 +93,14 @@ export default function GoalSetup() {
         }),
       });
       const goal = await goalRes.json() as { id: string };
+
+      // Upload reference document if the user provided one
+      if (sourceFile) {
+        const fd = new FormData();
+        fd.append('file', sourceFile);
+        await fetch(`/api/goals/${goal.id}/documents`, { method: 'POST', body: fd });
+      }
+
       // Create session for that goal
       const sessRes = await fetch('/api/sessions', {
         method: 'POST',
@@ -208,6 +231,52 @@ export default function GoalSetup() {
               resize="none"
               autoFocus
             />
+          )}
+
+          {current.id === 'source' && (
+            <Box>
+              <input
+                id="file-upload"
+                type="file"
+                accept=".pdf,.txt,.md"
+                style={{ display: 'none' }}
+                onChange={(e) => setSourceFile(e.target.files?.[0] ?? null)}
+              />
+              <Box
+                border="2px dashed"
+                borderColor={sourceFile ? 'brand.500' : borderColor}
+                borderRadius="12px"
+                p="32px"
+                textAlign="center"
+                cursor="pointer"
+                onClick={() => document.getElementById('file-upload')?.click()}
+                transition="border-color 0.2s"
+                _hover={{ borderColor: 'brand.500' }}
+              >
+                {sourceFile ? (
+                  <Flex direction="column" align="center" gap="8px">
+                    <Icon as={MdInsertDriveFile} boxSize={8} color="brand.500" />
+                    <Text color={textColor} fontWeight="600" fontSize="sm">{sourceFile.name}</Text>
+                    <Text color={subColor} fontSize="xs">{(sourceFile.size / 1024).toFixed(1)} KB</Text>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="red"
+                      leftIcon={<Icon as={MdClose} />}
+                      onClick={(e) => { e.stopPropagation(); setSourceFile(null); }}
+                    >
+                      Remove
+                    </Button>
+                  </Flex>
+                ) : (
+                  <Flex direction="column" align="center" gap="8px">
+                    <Icon as={MdUploadFile} boxSize={8} color={subColor} />
+                    <Text color={textColor} fontWeight="600" fontSize="sm">Click to upload</Text>
+                    <Text color={subColor} fontSize="xs">PDF, .txt, or .md · max 10 MB</Text>
+                  </Flex>
+                )}
+              </Box>
+            </Box>
           )}
         </Card>
 

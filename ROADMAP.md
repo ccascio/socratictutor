@@ -1,527 +1,155 @@
-The product should be:
-
-AI Socratic Learning Studio
-
-A dashboard where the user does not just receive explanations, but progressively builds a structured personal knowledge system.
-
-Core positioning
-
-“Learn complex topics through guided questioning, visual reasoning, and persistent knowledge maps.”
-
-Not:
-
-Ask anything and get an answer.
-
-But:
-
-Choose something you want to truly understand, and the system teaches you by challenging your reasoning.
-
-⸻
-
-Target users
-
-Best initial audience:
-
-1. Curious adults
-2. University students
-3. Professionals learning new domains
-4. Founders/architects/engineers
-5. People learning physics, AI, economics, philosophy, history
-
-I would avoid children/student homework at first. Too crowded.
-
-⸻
-
-The key UX idea
-
-The interface has four main areas:
-
-1. Socratic Conversation Panel
-
-This is the interactive part.
-
-The tutor asks:
-
-What do you think entropy means?
-
-User answers.
-
-The system detects:
-
-* misconception
-* partial understanding
-* missing prerequisite
-* confidence level
-* conceptual gap
-
-Then it asks the next question.
-
-The tutor should not immediately explain everything.
-
-It should guide.
-
-⸻
-
-2. Knowledge Map
-
-A graph of concepts.
-
-Example: “Quantum Mechanics”
-
-Quantum Mechanics
- ├── Wave function
- ├── Superposition
- ├── Measurement
- ├── Uncertainty principle
- ├── Operators
- └── Hilbert space
-
-Each node has:
-
-* status: unknown / weak / good / mastered
-* prerequisites
-* related concepts
-* user notes
-* generated explanation
-* past mistakes
-
-This becomes the user’s personal map of understanding.
-
-⸻
-
-3. Learning Artifacts
-
-Every session generates structured outputs:
-
-* Summary
-* Key concepts
-* Misconceptions detected
-* Questions asked
-* User answers
-* Corrected explanation
-* Flashcards
-* Quiz
-* Analogies
-* Mental models
-* Exportable notes
-
-This is where the product becomes much more valuable than chat.
-
-⸻
-
-4. Progress Dashboard
-
-Shows:
-
-* topics studied
-* mastery score
-* weak areas
-* upcoming review
-* streak
-* depth level
-* suggested next lesson
-
-Example:
-
-Topic: General Relativity
-Mastery: 42%
-Weak area: Equivalence principle
-Next step: Thought experiments on acceleration
-Review due: 3 concepts
-
-⸻
-
-Core workflow
-
-Step 1 — User creates a learning goal
-
-Example:
-
-I want to understand quantum field theory at a conceptual level.
-
-The app asks:
-
-* Current level?
-* Desired depth?
-* Why are you learning it?
-* Preferred style?
-* Time available?
-
-Then it creates a path.
-
-⸻
-
-Step 2 — Diagnostic session
-
-The system asks 5–10 questions to estimate the user’s real level.
-
-Example:
-
-What is the difference between a particle and a field?
-
-Based on the answers, it builds a starting profile.
-
-⸻
-
-Step 3 — Guided Socratic lesson
-
-The LLM runs a controlled teaching loop:
-
-Ask question
-→ Analyze answer
-→ Identify gap
-→ Ask follow-up
-→ Give minimal explanation
-→ Test understanding
-→ Store insight
-
-Important: the tutor should not lecture too early.
-
-⸻
-
-Step 4 — Structured output
-
-At the end of each session, the app saves:
-
-{
-  "topic": "Entropy",
-  "summary": "...",
-  "concepts": ["microstates", "macrostates", "probability"],
-  "misconceptions": ["entropy is simply disorder"],
-  "mastered": ["basic thermodynamic intuition"],
-  "weak": ["statistical mechanics interpretation"],
-  "next_questions": [...]
-}
-
-⸻
-
-Dashboard modules
-
-Learning Path
-
-A structured roadmap.
-
-Cosmology
- ├── Newtonian gravity
- ├── Special relativity
- ├── General relativity
- ├── Expanding universe
- ├── Cosmic microwave background
- ├── Dark matter
- └── Dark energy
-
-Each item can be opened, reviewed, exported, or tested.
-
-⸻
-
-Concept Cards
-
-Each concept gets a card:
-
-Concept: Entropy
-Simple definition:
-Entropy measures the number of microscopic configurations compatible with a macroscopic state.
-User misconception:
-You initially associated entropy only with “disorder.”
-Best analogy:
-A messy room is not the essence; probability of arrangements is.
-Status:
-Weak → needs review
-
-⸻
-
-Misconception Tracker
-
-This is a killer feature.
-
-Most learning apps track what you studied.
-
-This tracks what you misunderstood.
-
-Example:
-
-Misconception: “Mass increases with speed”
-Correction: Relativistic energy increases, but rest mass remains invariant.
-Detected in: Special Relativity Session 2
-Review status: unresolved
-
-This is powerful.
-
-⸻
-
-Export Center
-
-Export to:
-
-* Markdown
-* PDF
-* Notion
-* Obsidian
-* Anki
-* CSV
-* JSON
-* GitHub repo maybe
-
-For technical users, Obsidian + Markdown export would be very attractive.
-
-⸻
-
-Search
-
-The user can search:
-
-“Where did I misunderstand entropy?”
-
-or:
-
-“Show me all concepts related to probability.”
-
-Search should work across:
-
-* session transcripts
-* summaries
-* concepts
-* misconceptions
-* flashcards
-* user notes
-
-⸻
-
-The real product moat
-
-The moat is not the LLM.
-
-The moat is the learning memory model.
-
-You need a persistent learner profile:
-
-{
-  "user_id": "...",
-  "topics": [],
-  "known_concepts": [],
-  "weak_concepts": [],
-  "misconceptions": [],
-  "preferred_analogies": [],
-  "depth_level": "advanced",
-  "learning_style": "conceptual-first",
-  "review_schedule": []
-}
-
-Over time, the tutor becomes better because it knows how the user thinks.
-
-⸻
-
-Roadmap — AI Socratic Learning Studio
-
-Phase 0 — Product definition
-
-Goal: define the product sharply before coding.
-
-Decisions:
-
-* Initial vertical: AI/ML Tutor for Professionals
-* Secondary future vertical: physics/cosmology
-* Core promise: “Understand deeply, don’t just get answers”
-* Main differentiator: misconception tracking + structured knowledge dashboard
-
-Deliverables:
-
-* Product brief
-* User personas
-* Learning session flow
-* Data model draft
-* UI wireframe
-
-⸻
-
-Phase 1 — Frontend prototype
-
-Use the Horizon template here.
-
-Build these screens:
-
-1. Home dashboard
-    * active learning goals
-    * recent sessions
-    * weak concepts
-    * review due
-2. Learning goal setup
-    * topic
-    * current level
-    * target depth
-    * preferred style
-3. Socratic session
-    * chat on the left
-    * live concept extraction on the right
-4. Session summary
-    * concepts
-    * misconceptions
-    * questions asked
-    * next steps
-5. Concept library
-    * searchable cards
-    * mastery status
-    * related sessions
-6. Export center
-    * Markdown
-    * Anki CSV
-    * PDF later
-
-⸻
-
-Phase 2 — Backend foundation
-
-Recommended stack:
-
-Next.js / React
-Node.js API or NestJS
-OpenAI / Anthropic / Gemini abstraction
-
-Copy DB and embeddigns from /Users/calogerocascio/Documents/Python/BFrost implementatiop.
-
-Core entities:
-
-User
-LearningGoal
-Session
-Message
-Question
-Answer
-Concept
-Misconception
-LearningArtifact
-ReviewItem
-ExportJob
-
-Important: store structured learning objects, not only chat messages.
-
-⸻
-
-Phase 3 — Socratic engine MVP
-
-Implement a controlled learning loop:
-
-diagnose level
-→ ask question
-→ evaluate answer
-→ detect gap
-→ ask follow-up
-→ explain minimally
-→ test again
-→ store result
-
-LLM roles:
-
-1. Tutor
-2. Answer Evaluator
-3. Concept Extractor
-4. Misconception Detector
-5. Artifact Generator
-
-Not multi-agent conversation. More like a pipeline.
-
-⸻
-
-Phase 4 — Structured learning artifacts
-
-After each session, generate:
-
-* session summary
-* key concepts
-* misconceptions
-* flashcards
-* quiz questions
-* suggested next lesson
-* personal explanation adapted to the user
-
-This is the core value. The user should feel:
-
-“Every conversation becomes a study asset.”
-
-⸻
-
-Phase 5 — Search and memory
-
-Implement semantic search across:
-
-* sessions
-* concepts
-* misconceptions
-* user answers
-* generated notes
-* flashcards
-
-Example queries:
-
-“Where did I misunderstand embeddings?”
-
-“Show all weak concepts related to transformers.”
-
-Use pgvector first. Avoid overengineering.
-
-⸻
-
-Phase 6 — Review system
-
-Add spaced repetition.
-
-Each concept has:
-
-unknown → weak → improving → strong → mastered
-
-Review items are generated from:
-
-* wrong answers
-* weak explanations
-* repeated misconceptions
-* low-confidence concepts
-
-This makes the product sticky.
-
-⸻
-
-Phase 7 — Export system
-
-Initial exports:
-
-* Markdown
-* Anki CSV
-* JSON
-
-Later:
-
-* PDF
-* Obsidian vault
-* Notion integration
-* GitHub repo export
-
-For your target users, Markdown + Obsidian export could be a strong differentiator.
-
-⸻
-
-Phase 8 — Advanced dashboard
-
-Add:
-
-* knowledge graph
-* mastery timeline
-* prerequisite map
-* misconception history
-* learning velocity
-* “next best concept”
-
-This is where the product becomes visually different from chat.
-
-⸻
-
-Phase 9 — Monetizable version
-
-Pricing model:
-
-* Free: limited sessions
-* Pro: unlimited learning goals, exports, memory, search
-* Expert: advanced models, long-term memory, custom verticals
-
-Possible positioning:
-
-“A Socratic AI tutor that builds your personal knowledge base while you learn.”
+# Roadmap — AI Socratic Learning Studio
+
+> **What this file is.** A living engineering roadmap: current state, concrete fixes, and
+> planned evolutions. The original product vision (positioning, personas, data model,
+> session flow, wireframes) now lives in [`docs/phase-0/`](docs/phase-0/) and the UX rationale
+> in [`README.md`](README.md) — this file is no longer the vision doc, it's the work plan.
+
+**Core thesis (unchanged):** the moat is not the LLM, it's the **per-user learning-memory
+model** — concepts, misconceptions, and a learner profile that make the tutor smarter the
+longer you use it. Every item below is judged against that thesis.
+
+---
+
+## 1. Current state
+
+Phases 0–7 are built and working **for a single local user**:
+
+- **Socratic engine** (`src/lib/socraticEngine.ts`) — `generateObject` turn loop, structured
+  per-turn output (tutor message, concepts, misconception, confidence).
+- **Artifacts** (`src/lib/artifactGenerator.ts`) — summary, flashcards, quiz, next steps on session end.
+- **Embeddings + semantic search** (`src/lib/embeddings.ts`, `semanticSearch.ts`) with keyword fallback.
+- **Spaced repetition** (SM-2 in `repos.ts`), **PDF/Markdown/Anki/JSON export**, **"How You Think"
+  cognitive profile** (`thinkingProfiler.ts`).
+- SQLite via `better-sqlite3`, all data keyed off `DEFAULT_USER_ID = 'user-default'`.
+
+**The single biggest structural fact:** there is no auth and no per-user data. Everything is one
+hardcoded user. That is fine for the local prototype but gates everything in §3.
+
+---
+
+## 2. Correctness fixes (do first — small, high-value)
+
+These are bugs in shipped behavior, ordered by user impact.
+
+1. **Mastery percent is never computed.** `updateGoalMastery()` (`repos.ts:103`) exists but is
+   called nowhere. Every real goal shows the value it was created with (0); the "38% / 15%" on the
+   dashboard come *only* from seed data. The headline metric of the product is static.
+   → Compute mastery from concept statuses + misconception resolution at session end.
+
+2. **Misconception counts bleed across goals.** `createMisconception` (`repos.ts:337`) increments
+   `misconception_count` with `WHERE user_id=? AND name=?` — no goal scoping. A misconception about
+   "Attention" in one goal bumps every goal's "Attention" concept. Also `concept_id` is left `NULL`
+   on insert, so misconceptions are never hard-linked to their concept.
+
+3. **Review items never dedupe.** `scheduleReview` (`repos.ts:401`) uses `INSERT OR IGNORE` but
+   generates a fresh random `id` each call, so the conflict clause can never fire. Re-ending a
+   session (artifact is `INSERT OR REPLACE`) re-schedules every flashcard, piling up duplicate
+   reviews. → Dedupe on `(user_id, source_type, source_id)`.
+
+4. **Concept status vocabulary drift + `untested` → `weak` conflation.** The engine emits
+   `confirmed | learning | untested`; the chat route (`chat/route.ts:91`) remaps to
+   `strong | improving | weak`, turning "not yet tested" into "weak." That inflates the weak-concept
+   count and review pressure. The `concepts.status` column has no `CHECK` constraint and
+   `listConcepts` orders by `status DESC` (a lexical sort over arbitrary strings, not mastery order).
+   → Pick one status enum, constrain it in the schema, sort by an explicit mastery rank, and give
+   `untested` its own bucket.
+
+5. **`upsertConcept` never updates an existing concept's definition** (`repos.ts:291`) and only bumps
+   `session_count` when a status is passed. Re-encountering a concept with a better definition silently
+   keeps the old one.
+
+6. **Minor:** `createMisconception` returns its row via `listMisconceptions(...).find(...)` — a full
+   table load to fetch one just-inserted row (`repos.ts:338`); select by id instead. SM-2 deviates
+   from canonical fixed first-interval steps (`repos.ts:419`) — low priority, label as a tuning choice
+   not a bug.
+
+---
+
+## 3. The gating evolution — real users, auth, ownership
+
+This is the pivot that turns the prototype into a product and makes every item in §4/§5 real
+instead of theoretical. It is also what unlocks the per-user moat.
+
+- **Accounts + auth.** Replace `DEFAULT_USER_ID` with real sessions. Until then the learner profile
+  can't differentiate between people — the moat doesn't exist.
+- **Ownership checks on every `[id]` route.** Today `/api/export?session=…`, `/api/concepts/[id]`,
+  `/api/sessions/[id]/*` accept any id and return it (single-user, so it "works"). In a multi-user
+  world these are IDORs — any user can read/export anyone's session by guessing an id.
+- **Auth + rate limits on LLM endpoints.** Chat, session-end, search, and profile all spend OpenAI
+  budget with no auth or throttle. On any hosted deploy this is a cost-DoS: anyone who can reach the
+  server can drain the API budget. Add per-user quotas.
+- **Storage that survives multiple instances.** `better-sqlite3` is a single local file. Moving off
+  one machine means Postgres (with `pgvector` for §4) or a hosted SQLite (Turso/LiteFS). The current
+  `data/socratic.sqlite` does not survive serverless/multi-instance hosting.
+
+---
+
+## 4. Scale & performance
+
+- **Decouple embedding refresh from the read path.** `searchSemanticMemory` (`semanticSearch.ts:323`)
+  calls `refreshSemanticEmbeddingCache` (up to 25 OpenAI embed calls) **plus** 4 full-table scans
+  **plus** brute-force cosine in JS — *on every search request*. Refresh embeddings on write (or in a
+  background job); the read path should only score a cached index.
+- **The 25-doc refresh cap silently degrades coverage.** `MAX_EMBEDDINGS_PER_REFRESH = 25` means with
+  more than 25 changed docs, search returns partial results until you search enough times to catch up.
+- **Unbounded conversation context.** `chat/route.ts` resends the *entire* message history to the
+  model every turn (`runSocraticTurn(... conversationHistory: history ...)`). Cost and latency grow
+  linearly with session length. → Cap/summarize history past N turns.
+- **No pagination.** `listConcepts`, `listMisconceptions`, and the semantic doc list all load full
+  tables. Fine now, not at scale.
+- **Move vector search to `pgvector`** (originally planned) once on Postgres — brute-force JS cosine
+  is fine for a few hundred docs, not thousands.
+
+---
+
+## 5. Product evolutions
+
+- **Mastery scoring engine.** (See §2.1 — currently the metric is static.) Define how concept
+  statuses, confidence scores, and misconception resolution roll up into goal mastery, and recompute
+  it on every session end. This is the dashboard's headline number.
+- **Real diagnostic session.** `docs/phase-0/session-flow.md` Step 2 specifies a silent 5-question
+  diagnostic to estimate level. Today there's a single opening question, no scored diagnostic.
+- **Streaming + loading affordance.** The Socratic turn is a blocking `generateObject` with no token
+  streaming and no in-flight UI state — the user stares at a frozen input during the call. Stream the
+  tutor message (or at minimum add a pending state).
+- **Multi-provider LLM abstraction.** Phase 2 planned an OpenAI/Anthropic/Gemini abstraction; the code
+  hardcodes `openai('gpt-4o-mini')` in three files. Extract a model provider so Anthropic/Gemini and
+  model upgrades are config, not edits.
+- **Phase 8 — advanced dashboard:** knowledge-graph viz, mastery timeline, prerequisite map,
+  misconception history, learning velocity, "next best concept." This is what makes the product look
+  unlike chat.
+- **Export breadth:** Obsidian vault + Notion export (the differentiator for the technical audience);
+  md / Anki / JSON / PDF already ship.
+
+---
+
+## 6. Cleanup (low-risk, removes confusion)
+
+- **`.github/workflows/deploy.yml` is broken and misleading.** It targets Node 14 + `yarn export` →
+  gh-pages static hosting, which is fundamentally incompatible with this app's `runtime = 'nodejs'`
+  API routes and `better-sqlite3`. Either rewrite for a Node host (Vercel/Fly/Railway) or delete it.
+- **Stray DB copy.** `data/socratic 2.sqlite` (+ its `-wal`) is a Finder duplicate — delete it.
+- **Legacy Horizon-template cruft.** `app/api/chatAPI/route.ts` + `src/utils/chatStream.ts` (a plain
+  streaming chat unrelated to the Socratic flow), `src/lib/mockData.ts`, and `react-router-dom` v5
+  layered under Next's App Router. Pruning these (and the unused `material-tailwind`, `react-table`,
+  codemirror deps) shrinks the surface and the confusion.
+- **Shared row-mappers.** `parseJson`, `rowToConcept`, `rowToMisconception` are duplicated in
+  `repos.ts` and `semanticSearch.ts` — drift risk; extract once.
+- **Tests.** Playwright + Testing Library are installed but there are zero tests. The pure functions
+  are the cheap, high-value targets: SM-2 math, embedding pack/unpack, export formatting, mastery
+  rollup once it exists.
+- **`reactStrictMode: false`** in `next.config.js` hides double-render bugs; re-enable when convenient.
+- **`CLAUDE.md` / `AGENTS.md` are kept in sync by hand** — fine, just remember to edit both.
+
+---
+
+## 7. Monetization (deferred — needs §3 first)
+
+Carried over from the original vision; gated on real accounts:
+
+- **Free:** limited sessions.
+- **Pro:** unlimited goals, exports, memory, search.
+- **Expert:** advanced models, long-term memory, custom verticals.
+
+Positioning: *"A Socratic AI tutor that builds your personal knowledge base while you learn."*

@@ -1,5 +1,5 @@
 import { getDb } from './db';
-import { LearningGoal, Session, Concept, Misconception, LearningArtifact, ReviewItem, ChatMessage } from '@/types/learning';
+import { LearningGoal, Session, Concept, Misconception, LearningArtifact, ReviewItem, ChatMessage, MasteryStatus } from '@/types/learning';
 
 export const DEFAULT_USER_ID = 'user-default';
 
@@ -68,7 +68,7 @@ export function listGoals(userId = DEFAULT_USER_ID): LearningGoal[] {
   const rows = db.prepare(`
     SELECT g.*,
       (SELECT COUNT(*) FROM sessions s WHERE s.goal_id = g.id) AS session_count,
-      (SELECT COUNT(*) FROM concepts c WHERE c.goal_id = g.id AND c.status IN ('weak','unknown')) AS weak_concept_count
+      (SELECT COUNT(*) FROM concepts c WHERE c.goal_id = g.id AND c.status = 'weak') AS weak_concept_count
     FROM learning_goals g
     WHERE g.user_id = ? AND g.status != 'completed'
     ORDER BY g.last_session_at DESC NULLS LAST, g.created_at DESC
@@ -81,7 +81,7 @@ export function getGoal(id: string): LearningGoal | null {
   const row = db.prepare(`
     SELECT g.*,
       (SELECT COUNT(*) FROM sessions s WHERE s.goal_id = g.id) AS session_count,
-      (SELECT COUNT(*) FROM concepts c WHERE c.goal_id = g.id AND c.status IN ('weak','unknown')) AS weak_concept_count
+      (SELECT COUNT(*) FROM concepts c WHERE c.goal_id = g.id AND c.status = 'weak') AS weak_concept_count
     FROM learning_goals g WHERE g.id = ?
   `).get(id) as GoalRow | undefined;
   return row ? rowToGoal(row) : null;
@@ -102,6 +102,50 @@ export function createGoal(
 
 export function updateGoalMastery(goalId: string, masteryPercent: number): void {
   getDb().prepare(`UPDATE learning_goals SET mastery_percent = ? WHERE id = ?`).run(masteryPercent, goalId);
+}
+
+// Relative weight of each mastery status when rolling concepts up into a goal's mastery %.
+const MASTERY_WEIGHT: Record<MasteryStatus, number> = {
+  unknown: 0,
+  weak: 0.2,
+  improving: 0.5,
+  strong: 0.85,
+  mastered: 1,
+};
+
+// Integer rank used to enforce "never downgrade" on upsert.
+const MASTERY_RANK: Record<MasteryStatus, number> = {
+  unknown: 0,
+  weak: 1,
+  improving: 2,
+  strong: 3,
+  mastered: 4,
+};
+
+// Recompute a goal's mastery % as the weighted average of its concepts' statuses.
+// Returns the new value. If the goal has no concepts yet, leaves the stored value untouched
+// (so a freshly created or seeded goal is not wiped to 0 before any learning happens).
+export function recomputeGoalMastery(goalId: string): number {
+  const db = getDb();
+  const rows = db.prepare(
+    `SELECT status, COUNT(*) AS n FROM concepts WHERE goal_id = ? GROUP BY status`,
+  ).all(goalId) as { status: string; n: number }[];
+
+  let weighted = 0;
+  let total = 0;
+  for (const row of rows) {
+    weighted += (MASTERY_WEIGHT[row.status as MasteryStatus] ?? 0) * row.n;
+    total += row.n;
+  }
+
+  if (total === 0) {
+    const current = db.prepare(`SELECT mastery_percent AS m FROM learning_goals WHERE id = ?`).get(goalId) as { m: number } | undefined;
+    return current?.m ?? 0;
+  }
+
+  const percent = Math.round((weighted / total) * 100);
+  updateGoalMastery(goalId, percent);
+  return percent;
 }
 
 export function archiveGoal(goalId: string): boolean {
@@ -206,12 +250,14 @@ function rowToConcept(row: ConceptRow): Concept {
   };
 }
 
+const MASTERY_ORDER_SQL = `CASE c.status WHEN 'mastered' THEN 0 WHEN 'strong' THEN 1 WHEN 'improving' THEN 2 WHEN 'weak' THEN 3 ELSE 4 END`;
+
 export function listConcepts(userId = DEFAULT_USER_ID): Concept[] {
   const rows = getDb().prepare(`
     SELECT c.*, g.topic AS goal_topic
     FROM concepts c JOIN learning_goals g ON g.id = c.goal_id
     WHERE c.user_id = ?
-    ORDER BY c.status DESC, c.name
+    ORDER BY ${MASTERY_ORDER_SQL}, c.name
   `).all(userId) as ConceptRow[];
   return rows.map(rowToConcept);
 }
@@ -259,7 +305,7 @@ export function getConceptDetail(id: string): ConceptDetail | null {
     SELECT c.*, g.topic AS goal_topic
     FROM concepts c JOIN learning_goals g ON g.id = c.goal_id
     WHERE c.goal_id = ? AND c.id != ?
-    ORDER BY c.status DESC, c.name
+    ORDER BY ${MASTERY_ORDER_SQL}, c.name
   `).all(concept.goalId, id) as ConceptRow[];
 
   const artifactFlashcardRows = db.prepare(`
@@ -293,13 +339,26 @@ export function upsertConcept(
   data: { name: string; simpleDefinition?: string; status?: Concept['status'] },
 ): void {
   const db = getDb();
-  const existing = db.prepare(`SELECT id FROM concepts WHERE user_id = ? AND goal_id = ? AND name = ?`).get(userId, goalId, data.name) as { id: string } | undefined;
+  const existing = db.prepare(
+    `SELECT id, status, simple_definition FROM concepts WHERE user_id = ? AND goal_id = ? AND name = ?`,
+  ).get(userId, goalId, data.name) as { id: string; status: string; simple_definition: string } | undefined;
+
   if (existing) {
-    if (data.status) db.prepare(`UPDATE concepts SET status = ?, session_count = session_count + 1 WHERE id = ?`).run(data.status, existing.id);
+    // Only upgrade status — never downgrade a concept the learner has already demonstrated.
+    const currentRank = MASTERY_RANK[existing.status as MasteryStatus] ?? 0;
+    const incomingRank = data.status !== undefined ? (MASTERY_RANK[data.status] ?? 0) : -1;
+    const newStatus = incomingRank > currentRank ? data.status! : existing.status;
+    // Fill in the definition the first time we receive a non-empty one.
+    const newDef = (data.simpleDefinition && !existing.simple_definition)
+      ? data.simpleDefinition
+      : existing.simple_definition;
+    db.prepare(
+      `UPDATE concepts SET status = ?, simple_definition = ?, session_count = session_count + 1 WHERE id = ?`,
+    ).run(newStatus, newDef, existing.id);
   } else {
-    db.prepare(`INSERT INTO concepts (id, user_id, goal_id, name, simple_definition, status, session_count) VALUES (?, ?, ?, ?, ?, ?, 1)`).run(
-      `concept-${nanoid()}`, userId, goalId, data.name, data.simpleDefinition ?? '', data.status ?? 'unknown',
-    );
+    db.prepare(
+      `INSERT INTO concepts (id, user_id, goal_id, name, simple_definition, status, session_count) VALUES (?, ?, ?, ?, ?, ?, 1)`,
+    ).run(`concept-${nanoid()}`, userId, goalId, data.name, data.simpleDefinition ?? '', data.status ?? 'unknown');
   }
 }
 
@@ -325,17 +384,27 @@ export function listMisconceptions(userId = DEFAULT_USER_ID): Misconception[] {
 }
 
 export function createMisconception(
-  userId: string, sessionId: string, goalTopic: string,
+  userId: string, sessionId: string, goalId: string, goalTopic: string,
   data: { conceptName: string; text: string; correction: string },
 ): Misconception {
+  const db = getDb();
   const id = `misc-${nanoid()}`;
-  getDb().prepare(`
-    INSERT INTO misconceptions (id, user_id, concept_name, session_id, goal_topic, text, correction)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(id, userId, data.conceptName, sessionId, goalTopic, data.text, data.correction);
-  // Increment misconception_count on the concept if it exists
-  getDb().prepare(`UPDATE concepts SET misconception_count = misconception_count + 1 WHERE user_id = ? AND name = ?`).run(userId, data.conceptName);
-  return listMisconceptions(userId).find(m => m.id === id)!;
+
+  // Link to the concept within THIS goal (if it exists) so the count and FK stay goal-scoped.
+  const concept = db.prepare(
+    `SELECT id FROM concepts WHERE user_id = ? AND goal_id = ? AND name = ?`,
+  ).get(userId, goalId, data.conceptName) as { id: string } | undefined;
+
+  db.prepare(`
+    INSERT INTO misconceptions (id, user_id, concept_id, concept_name, session_id, goal_topic, text, correction)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, userId, concept?.id ?? null, data.conceptName, sessionId, goalTopic, data.text, data.correction);
+
+  if (concept) {
+    db.prepare(`UPDATE concepts SET misconception_count = misconception_count + 1 WHERE id = ?`).run(concept.id);
+  }
+
+  return rowToMisconception(db.prepare(`SELECT * FROM misconceptions WHERE id = ?`).get(id) as MisconceptionRow);
 }
 
 // ── Artifacts ────────────────────────────────────────────────────────────────
@@ -364,7 +433,8 @@ export function getArtifact(sessionId: string): LearningArtifact | null {
 }
 
 export function saveArtifact(sessionId: string, goalTopic: string, data: Omit<LearningArtifact, 'id' | 'sessionId' | 'goalTopic'>): LearningArtifact {
-  const id = `artifact-${nanoid()}`;
+  // Deterministic id so re-ending a session replaces the artifact rather than appending a new one.
+  const id = `artifact-${sessionId}`;
   getDb().prepare(`
     INSERT OR REPLACE INTO learning_artifacts
       (id, session_id, goal_topic, summary, mastered, weak, next_questions, flashcards, suggested_next)
@@ -377,6 +447,48 @@ export function saveArtifact(sessionId: string, goalTopic: string, data: Omit<Le
   );
   getDb().prepare(`UPDATE sessions SET artifact_id = ? WHERE id = ?`).run(id, sessionId);
   return getArtifact(sessionId)!;
+}
+
+// ── Source Documents ─────────────────────────────────────────────────────────
+
+interface SourceDocRow {
+  id: string; goal_id: string; filename: string;
+  content_text: string; size_bytes: number; uploaded_at: string;
+}
+
+export interface SourceDocument {
+  id: string;
+  goalId: string;
+  filename: string;
+  contentText: string;
+  sizeBytes: number;
+  uploadedAt: string;
+}
+
+function rowToSourceDoc(row: SourceDocRow): SourceDocument {
+  return {
+    id: row.id, goalId: row.goal_id, filename: row.filename,
+    contentText: row.content_text, sizeBytes: row.size_bytes, uploadedAt: row.uploaded_at,
+  };
+}
+
+export function saveSourceDocument(
+  goalId: string,
+  data: { filename: string; contentText: string; sizeBytes: number },
+): SourceDocument {
+  const db = getDb();
+  const id = `doc-${nanoid()}`;
+  db.prepare(
+    `INSERT INTO source_documents (id, goal_id, filename, content_text, size_bytes) VALUES (?, ?, ?, ?, ?)`,
+  ).run(id, goalId, data.filename, data.contentText, data.sizeBytes);
+  return rowToSourceDoc(db.prepare(`SELECT * FROM source_documents WHERE id = ?`).get(id) as SourceDocRow);
+}
+
+export function listSourceDocuments(goalId: string): SourceDocument[] {
+  const rows = getDb().prepare(
+    `SELECT * FROM source_documents WHERE goal_id = ? ORDER BY uploaded_at ASC`,
+  ).all(goalId) as SourceDocRow[];
+  return rows.map(rowToSourceDoc);
 }
 
 // ── Review Items ──────────────────────────────────────────────────────────────
@@ -399,7 +511,8 @@ export function listReviewItems(userId = DEFAULT_USER_ID): ReviewItem[] {
 }
 
 export function scheduleReview(userId: string, data: { sourceType: ReviewItem['sourceType']; sourceId: string; label: string; goalTopic: string; daysFromNow?: number }): void {
-  const id = `review-${nanoid()}`;
+  // Deterministic id from the natural key — INSERT OR IGNORE then correctly skips duplicates.
+  const id = `review:${userId}:${data.sourceType}:${data.sourceId}`;
   const due = new Date(Date.now() + (data.daysFromNow ?? 1) * 86400000).toISOString();
   getDb().prepare(`
     INSERT OR IGNORE INTO review_items (id, user_id, source_type, source_id, label, goal_topic, due_at)

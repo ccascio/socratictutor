@@ -19,8 +19,8 @@ function GoalCard({ goal, onContinue }: { goal: LearningGoal; onContinue: () => 
         <Flex align="center" mb="14px">
           <Flex borderRadius="full" justify="center" align="center"
             bg="linear-gradient(15.46deg, #4A25E1 26.3%, #7B5AFF 86.4%)"
-            w="40px" h="40px" me="12px" flexShrink={0}>
-            <Icon as={MdAutoAwesome} color="white" w="18px" h="18px" />
+            w="48px" h="48px" me="14px" flexShrink={0}>
+            <Icon as={MdAutoAwesome} color="white" w="24px" h="24px" />
           </Flex>
           <Box flex="1" minW="0">
             <Text color={textColor} fontWeight="700" fontSize="md" noOfLines={1}>{goal.topic}</Text>

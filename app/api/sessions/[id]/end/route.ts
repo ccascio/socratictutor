@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession, getGoal, getMessages, endSession, saveArtifact, scheduleReview, DEFAULT_USER_ID } from '@/lib/repos';
+import { getSession, getGoal, getMessages, endSession, saveArtifact, scheduleReview, recomputeGoalMastery, DEFAULT_USER_ID } from '@/lib/repos';
 import { generateSessionArtifact } from '@/lib/artifactGenerator';
 import { seedDemoData } from '@/lib/seed';
 
@@ -36,16 +36,20 @@ export async function POST(
     suggestedNext: generated.suggestedNext,
   });
 
-  // Schedule flashcard reviews
-  for (const card of generated.flashcards) {
+  // Schedule one review item per flashcard. sourceId encodes both artifact and card index
+  // so it's stable across re-ends of the same session (artifact.id is now deterministic).
+  generated.flashcards.forEach((card, index) => {
     scheduleReview(DEFAULT_USER_ID, {
       sourceType: 'flashcard',
-      sourceId: artifact.id,
+      sourceId: `${artifact.id}:${index}`,
       label: card.q.slice(0, 80),
       goalTopic: goal.topic,
       daysFromNow: 1,
     });
-  }
+  });
+
+  // Finalize the goal's mastery % from everything learned this session.
+  recomputeGoalMastery(session.goalId);
 
   return NextResponse.json(artifact);
 }

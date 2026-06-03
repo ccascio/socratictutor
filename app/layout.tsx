@@ -5,6 +5,8 @@ import routes from '@/routes';
 import Sidebar from '@/components/sidebar/Sidebar';
 import Footer from '@/components/footer/FooterAdmin';
 import Navbar from '@/components/navbar/NavbarAdmin';
+import GuidedTour from '@/components/onboarding/GuidedTour';
+import FirstRunOnboarding from '@/components/onboarding/FirstRunOnboarding';
 import { getActiveRoute, getActiveNavbar } from '@/utils/navigation';
 import { usePathname } from 'next/navigation';
 import '@/styles/App.css';
@@ -49,6 +51,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   {children}
                 </Box>
                 <Footer />
+                <FirstRunOnboarding />
+                <GuidedTour />
               </Box>
             </Box>
           )}

@@ -8,7 +8,7 @@ export const TutorResponseSchema = z.object({
   conceptsExtracted: z.array(z.object({
     name: z.string(),
     status: z.enum(['confirmed', 'learning', 'untested']),
-    simpleDefinition: z.string().optional(),
+    simpleDefinition: z.string().nullable().describe('One-sentence definition, or null if not determined this turn.'),
   })).describe('Concepts the user demonstrated understanding of (or gaps in) during this exchange.'),
   misconception: z.object({
     text: z.string().describe('What the user incorrectly believed (verbatim or paraphrase).'),
@@ -29,9 +29,11 @@ export interface EngineContext {
   learningStyle: string;
   conversationHistory: Array<{ role: 'tutor' | 'user'; content: string }>;
   userAnswer: string;
+  // Extracted text from documents the learner uploaded when creating this goal.
+  sourceContext?: string;
 }
 
-const SYSTEM_PROMPT = `You are a Socratic AI tutor. Your role is to teach through guided questioning, not lecture.
+const BASE_SYSTEM_PROMPT = `You are a Socratic AI tutor. Your role is to teach through guided questioning, not lecture.
 
 Core principles:
 - Ask one focused question at a time.
@@ -42,6 +44,16 @@ Core principles:
 - Keep messages concise (2–4 sentences max).
 
 You MUST return structured JSON matching the schema exactly.`;
+
+function buildSystemPrompt(sourceContext?: string): string {
+  if (!sourceContext) return BASE_SYSTEM_PROMPT;
+  return `${BASE_SYSTEM_PROMPT}
+
+REFERENCE MATERIAL
+The learner uploaded the following document(s) as their source material. Ground your Socratic questions in this content — ask about concepts, claims, or mechanisms that appear in it rather than general knowledge about the topic.
+
+${sourceContext}`;
+}
 
 export async function runSocraticTurn(ctx: EngineContext): Promise<TutorResponse> {
   const history = ctx.conversationHistory
@@ -65,7 +77,7 @@ Analyze this answer and respond as the Socratic tutor.`.trim();
   const result = await generateObject({
     model: openai('gpt-4o-mini'),
     schema: TutorResponseSchema,
-    system: SYSTEM_PROMPT,
+    system: buildSystemPrompt(ctx.sourceContext),
     prompt: userPrompt,
     temperature: 0.4,
   });
@@ -80,12 +92,15 @@ const OpeningSchema = z.object({
   diagnosticPlan: z.string().describe('What the tutor plans to assess in the first 3 questions.'),
 });
 
-export async function generateOpeningQuestion(ctx: Pick<EngineContext, 'goalTopic' | 'currentLevel' | 'learningStyle' | 'motivation'>): Promise<string> {
+export async function generateOpeningQuestion(ctx: Pick<EngineContext, 'goalTopic' | 'currentLevel' | 'learningStyle' | 'motivation' | 'sourceContext'>): Promise<string> {
+  const sourcePart = ctx.sourceContext
+    ? ` The learner has uploaded reference material — open with a question grounded in that content.`
+    : '';
   const result = await generateObject({
     model: openai('gpt-4o-mini'),
     schema: OpeningSchema,
-    system: SYSTEM_PROMPT,
-    prompt: `Start a Socratic session on "${ctx.goalTopic}". The learner is at ${ctx.currentLevel} level, prefers ${ctx.learningStyle} explanations, and is motivated by: "${ctx.motivation}". Ask an opening diagnostic question that reveals what they already know — NOT a yes/no question.`,
+    system: buildSystemPrompt(ctx.sourceContext),
+    prompt: `Start a Socratic session on "${ctx.goalTopic}". The learner is at ${ctx.currentLevel} level, prefers ${ctx.learningStyle} explanations, and is motivated by: "${ctx.motivation}".${sourcePart} Ask an opening diagnostic question that reveals what they already know — NOT a yes/no question.`,
     temperature: 0.5,
   });
   return (result.object as { question: string; diagnosticPlan: string }).question;

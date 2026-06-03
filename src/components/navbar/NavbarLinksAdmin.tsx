@@ -3,14 +3,17 @@ import {
   Button,
   Flex,
   Icon,
+  Tooltip,
   useColorMode,
   useColorModeValue,
 } from '@chakra-ui/react';
 import { SearchBar } from '@/components/navbar/searchBar/SearchBar';
 import { SidebarResponsive } from '@/components/sidebar/Sidebar';
 import { IoMdMoon, IoMdSunny } from 'react-icons/io';
+import { MdHelpOutline } from 'react-icons/md';
 import routes from '@/routes';
 import PreferencesModal from '@/components/preferences/PreferencesModal';
+import { openGuidedTour } from '@/components/onboarding/GuidedTour';
 
 export default function HeaderLinks(props: { secondary: boolean; setApiKey?: any }) {
   const { secondary } = props;
@@ -44,6 +47,21 @@ export default function HeaderLinks(props: { secondary: boolean; setApiKey?: any
         borderRadius="30px"
       />
       <SidebarResponsive routes={routes} />
+      <Tooltip label="Open guide" hasArrow borderRadius="8px">
+        <Button
+          variant="no-hover"
+          bg="transparent"
+          p="0px"
+          minW="unset"
+          minH="unset"
+          h="18px"
+          w="max-content"
+          onClick={openGuidedTour}
+          aria-label="Open guide"
+        >
+          <Icon me="10px" h="18px" w="18px" color={navbarIcon} as={MdHelpOutline} />
+        </Button>
+      </Tooltip>
       <PreferencesModal />
       <Button
         variant="no-hover"

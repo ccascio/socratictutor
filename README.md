@@ -1,3 +1,9 @@
+## User documentation
+
+See [docs/user-guide/README.md](docs/user-guide/README.md) for step-by-step tutorials with screenshots covering the Dashboard, goal creation, Socratic sessions, summaries, Concept Library, concept details, Export Center, How You Think, and Preferences.
+
+---
+
 Most AI education products fail because they copy ChatGPT:
 
 +----------------------+

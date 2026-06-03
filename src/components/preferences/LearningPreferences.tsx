@@ -12,6 +12,13 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
+import {
+  StoredLearningStyle,
+  StoredTargetDepth,
+  getStoredLearningStyle,
+  getStoredTargetDepth,
+  saveLearningPreferences,
+} from '@/components/onboarding/onboardingStorage';
 
 const STYLE_OPTIONS = [
   { value: 'intuition-first', label: 'Intuition first', desc: 'Give me the why before the details' },
@@ -31,17 +38,16 @@ export default function LearningPreferences() {
   const subColor = useColorModeValue('gray.500', 'gray.400');
   const toast = useToast();
 
-  const [style, setStyle] = useState('intuition-first');
-  const [depth, setDepth] = useState('conceptual');
+  const [style, setStyle] = useState<StoredLearningStyle>('intuition-first');
+  const [depth, setDepth] = useState<StoredTargetDepth>('conceptual');
 
   useEffect(() => {
-    setStyle(localStorage.getItem('pref_learningStyle') || 'intuition-first');
-    setDepth(localStorage.getItem('pref_targetDepth') || 'conceptual');
+    setStyle(getStoredLearningStyle());
+    setDepth(getStoredTargetDepth());
   }, []);
 
   const save = () => {
-    localStorage.setItem('pref_learningStyle', style);
-    localStorage.setItem('pref_targetDepth', depth);
+    saveLearningPreferences(style, depth);
     toast({ title: 'Preferences saved.', status: 'success', position: 'top', isClosable: true });
   };
 
@@ -54,7 +60,7 @@ export default function LearningPreferences() {
         <Text color={subColor} fontSize="xs" mb="14px">
           Used as the default when you start a new session without specifying a style.
         </Text>
-        <RadioGroup value={style} onChange={setStyle}>
+        <RadioGroup value={style} onChange={(value) => setStyle(value as StoredLearningStyle)}>
           <Stack spacing="12px">
             {STYLE_OPTIONS.map((opt) => (
               <Radio key={opt.value} value={opt.value} colorScheme="brand">
@@ -75,7 +81,7 @@ export default function LearningPreferences() {
         <Text color={subColor} fontSize="xs" mb="14px">
           Pre-selects the depth when you create a new learning goal.
         </Text>
-        <RadioGroup value={depth} onChange={setDepth}>
+        <RadioGroup value={depth} onChange={(value) => setDepth(value as StoredTargetDepth)}>
           <Stack spacing="12px">
             {DEPTH_OPTIONS.map((opt) => (
               <Radio key={opt.value} value={opt.value} colorScheme="brand">
