@@ -5,8 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:desktop": "NEXT_APP_TARGET=desktop next build",
     "start": "next start",
-    "lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "tauri:dev": "NEXT_APP_TARGET=desktop npx @tauri-apps/cli dev",
+    "tauri:build": "APPLE_SIGNING_IDENTITY='' npx @tauri-apps/cli build --config src-tauri/tauri.desktop.conf.json",
+    "release:macos": "bash scripts/release-macos.sh",
+    "release:macos:preflight": "bash scripts/release-macos.sh --preflight"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.67",
@@ -50,6 +55,7 @@
   "devDependencies": {
     "@babel/cli": "^7.24.6",
     "@babel/core": "^7.24.6",
+    "@tauri-apps/cli": "^2.11.2",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "18.15.11",
     "@types/pdf-parse": "^1.1.5",

@@ -2,6 +2,7 @@
 import { Box, Flex, Stack } from '@chakra-ui/react';
 import Brand from '@/components/sidebar/components/Brand';
 import Links from '@/components/sidebar/components/Links';
+import SidebarCard from '@/components/sidebar/components/SidebarCard';
 import SidebarGoals from '@/components/sidebar/components/SidebarGoals';
 import { PropsWithChildren } from 'react';
 import { IRoute } from '@/types/navigation';
@@ -31,6 +32,7 @@ function SidebarContent(props: SidebarContent) {
         </Box>
         <SidebarGoals />
       </Stack>
+      <SidebarCard />
     </Flex>
   );
 }

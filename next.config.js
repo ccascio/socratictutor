@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 
+const isDesktop = process.env.NEXT_APP_TARGET === 'desktop';
+
 const nextConfig = {
   reactStrictMode: false,
-  basePath: process.env.NEXT_PUBLIC_BASE_PATH,
-  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH,
+  ...(isDesktop && { output: 'standalone' }),
+  basePath: isDesktop ? undefined : process.env.NEXT_PUBLIC_BASE_PATH,
+  assetPrefix: isDesktop ? undefined : process.env.NEXT_PUBLIC_BASE_PATH,
   serverExternalPackages: ['better-sqlite3', '@react-pdf/renderer', 'pdf-parse'],
   images: {
     domains: [
@@ -11,7 +14,6 @@ const nextConfig = {
       'i.ibb.co',
       'scontent.fotp8-1.fna.fbcdn.net',
     ],
-    // Make ENV
     unoptimized: true,
   },
 };

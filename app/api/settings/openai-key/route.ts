@@ -34,7 +34,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     if ('response' in parsed) return parsed.response;
     const { apiKey } = parsed.data;
 
-    await upsertEnvValue(path.join(process.cwd(), '.env'), ENV_KEY, apiKey);
+    const envDir = process.env.SOCRATIC_DATA_DIR ?? process.cwd();
+    await upsertEnvValue(path.join(envDir, '.env'), ENV_KEY, apiKey);
     process.env[ENV_KEY] = apiKey;
 
     return NextResponse.json({ ok: true, configured: true });

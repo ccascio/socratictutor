@@ -41,3 +41,8 @@ data/*.sqlite*
 next-env.d.ts
 
 .idea
+
+# tauri desktop
+/src-tauri/target/
+/src-tauri/binaries/
+/src-tauri/gen/

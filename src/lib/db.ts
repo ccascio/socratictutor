@@ -7,8 +7,9 @@ let db: Database.Database | null = null;
 function getDb(): Database.Database {
   if (db) return db;
 
-  const dbPath = path.join(process.cwd(), 'data', 'socratic.sqlite');
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const dataDir = process.env.SOCRATIC_DATA_DIR ?? path.join(process.cwd(), 'data');
+  const dbPath = path.join(dataDir, 'socratic.sqlite');
+  fs.mkdirSync(dataDir, { recursive: true });
 
   db = new Database(dbPath);
   db.pragma('journal_mode = WAL');

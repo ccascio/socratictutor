@@ -1,3 +1,18 @@
+# SocraticTutor
+
+> An AI-powered desktop tutor that teaches through questions, not answers.
+
+## Download for macOS
+
+| Platform | Link |
+|----------|------|
+| macOS (Apple Silicon) | [SocraticTutor_0.1.0_aarch64.dmg](https://github.com/ccascio/socratictutor/releases/latest/download/SocraticTutor_0.1.0_aarch64.dmg) |
+| macOS (Intel) | [SocraticTutor_0.1.0_x64.dmg](https://github.com/ccascio/socratictutor/releases/latest/download/SocraticTutor_0.1.0_x64.dmg) |
+
+Open the DMG, drag **SocraticTutor** to Applications, and launch. On first run you will be prompted to enter your OpenAI API key in **Preferences**.
+
+---
+
 ## User documentation
 
 See [docs/user-guide/README.md](docs/user-guide/README.md) for step-by-step tutorials with screenshots covering the Dashboard, goal creation, Socratic sessions, summaries, Concept Library, concept details, Export Center, How You Think, and Preferences.
