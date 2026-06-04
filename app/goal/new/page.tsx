@@ -108,6 +108,7 @@ export default function GoalSetup() {
         body: JSON.stringify({ goalId: goal.id }),
       });
       const { id: sessionId } = await sessRes.json() as { id: string };
+      window.dispatchEvent(new Event('socratic:goals-changed'));
       router.push(`/session/${sessionId}`);
     } catch {
       setLoading(false);

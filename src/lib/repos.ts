@@ -153,6 +153,111 @@ export function archiveGoal(goalId: string): boolean {
   return result.changes > 0;
 }
 
+export interface GoalDeleteSummary {
+  goalId: string;
+  sessions: number;
+  messages: number;
+  concepts: number;
+  misconceptions: number;
+  artifacts: number;
+  reviewItems: number;
+  sourceDocuments: number;
+  documentChunkEmbeddings: number;
+  conceptEmbeddings: number;
+  messageEmbeddings: number;
+  semanticSearchEmbeddings: number;
+}
+
+function placeholders(values: unknown[]): string {
+  return values.map(() => '?').join(', ');
+}
+
+function deleteWhereIn(db: ReturnType<typeof getDb>, sqlPrefix: string, values: string[]): number {
+  if (values.length === 0) return 0;
+  return db.prepare(`${sqlPrefix} (${placeholders(values)})`).run(...values).changes;
+}
+
+export function deleteGoalCascade(goalId: string): GoalDeleteSummary | null {
+  const db = getDb();
+  const goal = db.prepare(`SELECT id FROM learning_goals WHERE id = ?`).get(goalId) as { id: string } | undefined;
+  if (!goal) return null;
+
+  const sessions = db.prepare(`SELECT id FROM sessions WHERE goal_id = ?`).all(goalId) as { id: string }[];
+  const sessionIds = sessions.map(s => s.id);
+  const messages = sessionIds.length > 0
+    ? db.prepare(`SELECT id FROM messages WHERE session_id IN (${placeholders(sessionIds)})`).all(...sessionIds) as { id: string }[]
+    : [];
+  const messageIds = messages.map(m => m.id);
+  const concepts = db.prepare(`SELECT id FROM concepts WHERE goal_id = ?`).all(goalId) as { id: string }[];
+  const conceptIds = concepts.map(c => c.id);
+  const misconceptions = sessionIds.length > 0
+    ? db.prepare(`SELECT id FROM misconceptions WHERE session_id IN (${placeholders(sessionIds)})`).all(...sessionIds) as { id: string }[]
+    : [];
+  const misconceptionIds = misconceptions.map(m => m.id);
+  const artifacts = sessionIds.length > 0
+    ? db.prepare(`SELECT id FROM learning_artifacts WHERE session_id IN (${placeholders(sessionIds)})`).all(...sessionIds) as { id: string }[]
+    : [];
+  const artifactIds = artifacts.map(a => a.id);
+  const sourceDocuments = db.prepare(`SELECT id FROM source_documents WHERE goal_id = ?`).all(goalId) as { id: string }[];
+  const sourceDocumentIds = sourceDocuments.map(d => d.id);
+
+  const flashcardIds: string[] = [];
+  if (artifacts.length > 0) {
+    const artifactRows = db.prepare(`
+      SELECT id, flashcards FROM learning_artifacts WHERE id IN (${placeholders(artifactIds)})
+    `).all(...artifactIds) as { id: string; flashcards: string }[];
+    for (const row of artifactRows) {
+      parseJson<Array<{ q: string; a: string }>>(row.flashcards, []).forEach((_card, index) => {
+        flashcardIds.push(`${row.id}:flashcard:${index}`);
+      });
+    }
+  }
+
+  const summary: GoalDeleteSummary = {
+    goalId,
+    sessions: sessionIds.length,
+    messages: messageIds.length,
+    concepts: conceptIds.length,
+    misconceptions: misconceptionIds.length,
+    artifacts: artifactIds.length,
+    reviewItems: 0,
+    sourceDocuments: sourceDocumentIds.length,
+    documentChunkEmbeddings: 0,
+    conceptEmbeddings: 0,
+    messageEmbeddings: 0,
+    semanticSearchEmbeddings: 0,
+  };
+
+  const tx = db.transaction(() => {
+    summary.reviewItems += deleteWhereIn(db, `DELETE FROM review_items WHERE source_type = 'misconception' AND source_id IN`, misconceptionIds);
+    summary.reviewItems += deleteWhereIn(db, `DELETE FROM review_items WHERE source_type = 'concept' AND source_id IN`, conceptIds);
+    summary.reviewItems += deleteWhereIn(db, `DELETE FROM review_items WHERE source_type = 'flashcard' AND source_id IN`, flashcardIds);
+
+    summary.semanticSearchEmbeddings += deleteWhereIn(db, `DELETE FROM search_embeddings WHERE source_type = 'concept' AND source_id IN`, conceptIds);
+    summary.semanticSearchEmbeddings += deleteWhereIn(db, `DELETE FROM search_embeddings WHERE source_type = 'misconception' AND source_id IN`, misconceptionIds);
+    summary.semanticSearchEmbeddings += deleteWhereIn(db, `DELETE FROM search_embeddings WHERE source_type = 'message' AND source_id IN`, messageIds);
+    summary.semanticSearchEmbeddings += deleteWhereIn(db, `DELETE FROM search_embeddings WHERE source_type = 'artifact' AND source_id IN`, artifactIds);
+    summary.semanticSearchEmbeddings += deleteWhereIn(db, `DELETE FROM search_embeddings WHERE source_type = 'flashcard' AND source_id IN`, flashcardIds);
+
+    summary.conceptEmbeddings += deleteWhereIn(db, `DELETE FROM concept_embeddings WHERE concept_id IN`, conceptIds);
+    summary.messageEmbeddings += deleteWhereIn(db, `DELETE FROM message_embeddings WHERE message_id IN`, messageIds);
+
+    summary.documentChunkEmbeddings += db.prepare(`DELETE FROM document_chunk_embeddings WHERE goal_id = ?`).run(goalId).changes;
+    deleteWhereIn(db, `DELETE FROM source_documents WHERE id IN`, sourceDocumentIds);
+
+    deleteWhereIn(db, `DELETE FROM learning_artifacts WHERE id IN`, artifactIds);
+    deleteWhereIn(db, `DELETE FROM misconceptions WHERE id IN`, misconceptionIds);
+    deleteWhereIn(db, `DELETE FROM messages WHERE id IN`, messageIds);
+    deleteWhereIn(db, `DELETE FROM sessions WHERE id IN`, sessionIds);
+    deleteWhereIn(db, `DELETE FROM concepts WHERE id IN`, conceptIds);
+
+    db.prepare(`DELETE FROM learning_goals WHERE id = ?`).run(goalId);
+  });
+  tx();
+
+  return summary;
+}
+
 // ── Sessions ──────────────────────────────────────────────────────────────────
 
 interface SessionRow {
@@ -217,11 +322,28 @@ export function endSession(sessionId: string): void {
 
 // ── Messages ──────────────────────────────────────────────────────────────────
 
+interface MessageRow {
+  id: string;
+  session_id: string;
+  role: string;
+  content: string;
+  turn_index: number;
+}
+
+function rowToChatMessage(row: MessageRow): ChatMessage {
+  return {
+    id: row.id,
+    role: row.role as ChatMessage['role'],
+    content: row.content,
+    turnIndex: row.turn_index,
+  };
+}
+
 export function getMessages(sessionId: string): ChatMessage[] {
   const rows = getDb().prepare(`
-    SELECT role, content FROM messages WHERE session_id = ? ORDER BY turn_index
-  `).all(sessionId) as { role: string; content: string }[];
-  return rows.map(r => ({ role: r.role as ChatMessage['role'], content: r.content }));
+    SELECT id, session_id, role, content, turn_index FROM messages WHERE session_id = ? ORDER BY turn_index
+  `).all(sessionId) as MessageRow[];
+  return rows.map(rowToChatMessage);
 }
 
 export function appendMessage(sessionId: string, role: 'tutor' | 'user', content: string): string {
@@ -230,6 +352,168 @@ export function appendMessage(sessionId: string, role: 'tutor' | 'user', content
   const { maxTurn } = db.prepare(`SELECT COALESCE(MAX(turn_index), -1) AS maxTurn FROM messages WHERE session_id = ?`).get(sessionId) as { maxTurn: number };
   db.prepare(`INSERT INTO messages (id, session_id, role, content, turn_index) VALUES (?, ?, ?, ?, ?)`).run(id, sessionId, role, content, maxTurn + 1);
   return id;
+}
+
+function reindexMessages(sessionId: string): void {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT id FROM messages WHERE session_id = ? ORDER BY turn_index, created_at, id
+  `).all(sessionId) as { id: string }[];
+  const update = db.prepare(`UPDATE messages SET turn_index = ? WHERE id = ?`);
+  for (const [index, row] of rows.entries()) {
+    update.run(index, row.id);
+  }
+}
+
+export function deleteMessage(sessionId: string, messageId: string): boolean {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    const result = db.prepare(`DELETE FROM messages WHERE session_id = ? AND id = ?`).run(sessionId, messageId);
+    if (result.changes === 0) return false;
+    reindexMessages(sessionId);
+    return true;
+  });
+  return tx();
+}
+
+export function getMessage(sessionId: string, messageId: string): ChatMessage | null {
+  const row = getDb().prepare(`
+    SELECT id, session_id, role, content, turn_index FROM messages WHERE session_id = ? AND id = ?
+  `).get(sessionId, messageId) as MessageRow | undefined;
+  return row ? rowToChatMessage(row) : null;
+}
+
+export function isLastMessage(sessionId: string, messageId: string): boolean {
+  const row = getDb().prepare(`
+    SELECT turn_index, (SELECT COALESCE(MAX(turn_index), -1) FROM messages WHERE session_id = ?) AS max_turn
+    FROM messages
+    WHERE session_id = ? AND id = ?
+  `).get(sessionId, sessionId, messageId) as { turn_index: number; max_turn: number } | undefined;
+  return !!row && row.turn_index === row.max_turn;
+}
+
+export function getMessagesBeforeTurn(sessionId: string, turnIndex: number): ChatMessage[] {
+  const rows = getDb().prepare(`
+    SELECT id, session_id, role, content, turn_index
+    FROM messages
+    WHERE session_id = ? AND turn_index < ?
+    ORDER BY turn_index
+  `).all(sessionId, turnIndex) as MessageRow[];
+  return rows.map(rowToChatMessage);
+}
+
+export function replaceMessageContent(sessionId: string, messageId: string, content: string): boolean {
+  const db = getDb();
+  const tx = db.transaction(() => {
+    const result = db.prepare(`UPDATE messages SET content = ? WHERE session_id = ? AND id = ?`)
+      .run(content, sessionId, messageId);
+    if (result.changes === 0) return false;
+
+    db.prepare(`DELETE FROM message_embeddings WHERE message_id = ?`).run(messageId);
+    db.prepare(`DELETE FROM search_embeddings WHERE source_type = 'message' AND source_id = ?`).run(messageId);
+    return true;
+  });
+  return tx();
+}
+
+export function forkSessionBeforeMessage(sessionId: string, messageId: string): string | null {
+  const db = getDb();
+  const message = db.prepare(`
+    SELECT id, session_id, role, content, turn_index FROM messages WHERE session_id = ? AND id = ?
+  `).get(sessionId, messageId) as MessageRow | undefined;
+  if (!message) return null;
+
+  const session = db.prepare(`
+    SELECT id, goal_id, user_id, topic FROM sessions WHERE id = ?
+  `).get(sessionId) as { id: string; goal_id: string; user_id: string; topic: string } | undefined;
+  if (!session) return null;
+
+  const newSessionId = `session-${nanoid()}`;
+  const tx = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO sessions (id, goal_id, user_id, topic) VALUES (?, ?, ?, ?)
+    `).run(newSessionId, session.goal_id, session.user_id, `${session.topic} (fork)`);
+
+    const rows = db.prepare(`
+      SELECT id, session_id, role, content, turn_index
+      FROM messages
+      WHERE session_id = ? AND turn_index < ?
+      ORDER BY turn_index
+    `).all(sessionId, message.turn_index) as MessageRow[];
+
+    const insert = db.prepare(`
+      INSERT INTO messages (id, session_id, role, content, turn_index) VALUES (?, ?, ?, ?, ?)
+    `);
+    for (const row of rows) {
+      insert.run(`msg-${nanoid()}`, newSessionId, row.role, row.content, row.turn_index);
+    }
+
+    db.prepare(`UPDATE learning_goals SET last_session_at = ? WHERE id = ?`)
+      .run(nowIso(), session.goal_id);
+  });
+  tx();
+
+  return newSessionId;
+}
+
+export function editMessageOrForkSession(
+  sessionId: string,
+  messageId: string,
+  content: string,
+): { forked: false; sessionId: string; messages: ChatMessage[] } | { forked: true; sessionId: string; messages: ChatMessage[] } | null {
+  const db = getDb();
+  const message = db.prepare(`
+    SELECT id, session_id, role, content, turn_index FROM messages WHERE session_id = ? AND id = ?
+  `).get(sessionId, messageId) as MessageRow | undefined;
+  if (!message) return null;
+
+  const { maxTurn } = db.prepare(`
+    SELECT COALESCE(MAX(turn_index), -1) AS maxTurn FROM messages WHERE session_id = ?
+  `).get(sessionId) as { maxTurn: number };
+
+  if (message.turn_index === maxTurn) {
+    db.prepare(`UPDATE messages SET content = ? WHERE session_id = ? AND id = ?`)
+      .run(content, sessionId, messageId);
+    return { forked: false, sessionId, messages: getMessages(sessionId) };
+  }
+
+  const session = db.prepare(`
+    SELECT id, goal_id, user_id, topic FROM sessions WHERE id = ?
+  `).get(sessionId) as { id: string; goal_id: string; user_id: string; topic: string } | undefined;
+  if (!session) return null;
+
+  const newSessionId = `session-${nanoid()}`;
+  const tx = db.transaction(() => {
+    db.prepare(`
+      INSERT INTO sessions (id, goal_id, user_id, topic) VALUES (?, ?, ?, ?)
+    `).run(newSessionId, session.goal_id, session.user_id, `${session.topic} (fork)`);
+
+    const rows = db.prepare(`
+      SELECT id, session_id, role, content, turn_index
+      FROM messages
+      WHERE session_id = ? AND turn_index <= ?
+      ORDER BY turn_index
+    `).all(sessionId, message.turn_index) as MessageRow[];
+
+    const insert = db.prepare(`
+      INSERT INTO messages (id, session_id, role, content, turn_index) VALUES (?, ?, ?, ?, ?)
+    `);
+    for (const row of rows) {
+      insert.run(
+        `msg-${nanoid()}`,
+        newSessionId,
+        row.role,
+        row.id === messageId ? content : row.content,
+        row.turn_index,
+      );
+    }
+
+    db.prepare(`UPDATE learning_goals SET last_session_at = ? WHERE id = ?`)
+      .run(nowIso(), session.goal_id);
+  });
+  tx();
+
+  return { forked: true, sessionId: newSessionId, messages: getMessages(newSessionId) };
 }
 
 // ── Concepts ─────────────────────────────────────────────────────────────────

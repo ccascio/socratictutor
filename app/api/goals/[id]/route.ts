@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { archiveGoal } from '@/lib/repos';
+import { deleteGoalCascade } from '@/lib/repos';
 import { seedDemoData } from '@/lib/seed';
 
 export const runtime = 'nodejs';
@@ -10,8 +10,9 @@ export async function DELETE(
 ): Promise<NextResponse> {
   seedDemoData();
   const { id } = await params;
-  if (!archiveGoal(id)) {
+  const deleted = deleteGoalCascade(id);
+  if (!deleted) {
     return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, deleted });
 }

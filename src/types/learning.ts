@@ -81,8 +81,10 @@ export interface ReviewItem {
 }
 
 export interface ChatMessage {
+  id?: string;
   role: MessageRole;
   content: string;
+  turnIndex?: number;
 }
 
 export interface ThinkingProfileStrength {

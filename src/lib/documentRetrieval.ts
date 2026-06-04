@@ -7,6 +7,19 @@ import {
   OPENAI_EMBEDDING_MODEL,
 } from './embeddings';
 
+export interface RetrievedDocumentChunk {
+  content: string;
+  score: number;
+}
+
+export interface DocumentRetrievalResult {
+  query: string;
+  model: string;
+  availableChunkCount: number;
+  threshold: number;
+  chunks: RetrievedDocumentChunk[];
+}
+
 // ── Chunking ─────────────────────────────────────────────────────────────────
 //
 // Strategy: accumulate paragraphs (split on blank lines) until the buffer
@@ -100,21 +113,46 @@ export async function retrieveRelevantChunks(
   query: string,
   limit = 3,
 ): Promise<string[]> {
+  const result = await retrieveRelevantChunksWithScores(goalId, query, limit);
+  return result.chunks.map(r => r.content);
+}
+
+export async function retrieveRelevantChunksWithScores(
+  goalId: string,
+  query: string,
+  limit = 3,
+): Promise<DocumentRetrievalResult> {
   const db = getDb();
+  const threshold = 0.45;
   const rows = db.prepare(`
     SELECT content, embedding
     FROM document_chunk_embeddings
     WHERE goal_id = ? AND model = ?
   `).all(goalId, OPENAI_EMBEDDING_MODEL) as { content: string; embedding: Buffer }[];
 
-  if (rows.length === 0) return [];
+  if (rows.length === 0) {
+    return {
+      query,
+      model: OPENAI_EMBEDDING_MODEL,
+      availableChunkCount: 0,
+      threshold,
+      chunks: [],
+    };
+  }
 
   const { embedding: qVec } = await embedText(query);
 
-  return rows
+  const chunks = rows
     .map(r => ({ content: r.content, score: cosineSimilarity(qVec, unpackEmbedding(r.embedding)) }))
-    .filter(r => r.score >= 0.45)
+    .filter(r => r.score >= threshold)
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(r => r.content);
+    .slice(0, limit);
+
+  return {
+    query,
+    model: OPENAI_EMBEDDING_MODEL,
+    availableChunkCount: rows.length,
+    threshold,
+    chunks,
+  };
 }
