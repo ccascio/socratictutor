@@ -2,6 +2,10 @@
 
 > An AI-powered desktop tutor that teaches through questions, not answers.
 
+Most AI education tools replicate a chat interface. SocraticTutor takes a different approach: the conversation is temporary, but the knowledge is permanent. Every session builds a structured learning model — tracked concepts, detected misconceptions, spaced repetition reviews, and a cognitive profile that shows not just *what* you know, but *how* you learn.
+
+---
+
 ## Download for macOS
 
 | Platform | Link |
@@ -13,379 +17,67 @@ Open the DMG, drag **SocraticTutor** to Applications, and launch. On first run y
 
 ---
 
-## User documentation
+## Features
 
-See [docs/user-guide/README.md](docs/user-guide/README.md) for step-by-step tutorials with screenshots covering the Dashboard, goal creation, Socratic sessions, summaries, Concept Library, concept details, Export Center, How You Think, and Preferences.
+**Socratic Sessions** — The tutor never gives direct answers. Instead, it asks targeted questions to surface gaps, correct misconceptions in real time, and guide you to understanding on your own terms.
+
+**Concept Library** — Every concept discussed across all sessions is catalogued with mastery scores, misconceptions, explanations, and related topics. It becomes your personal knowledge base.
+
+**Spaced Repetition** — Concepts and flashcards surface automatically for review based on the SM-2 algorithm, prioritising what you're about to forget.
+
+**Session Artifacts** — At the end of each session, the app generates a summary, flashcards, a quiz, and a suggested next topic — all exportable as Markdown, Anki, JSON, or PDF.
+
+**"How You Think" Profile** — A cognitive dashboard that infers your learning strengths, weaknesses, common mistake patterns, and preferred reasoning style by analysing your full learning history.
+
+**Fully local** — All data stays on your machine. SQLite database, no accounts, no cloud sync.
 
 ---
 
-Most AI education products fail because they copy ChatGPT:
+## Getting started (development)
 
-+----------------------+
-|       CHAT           |
-|                      |
-| User                 |
-| AI                   |
-| User                 |
-| AI                   |
-+----------------------+
+### Prerequisites
 
-That interface is terrible for learning.
+- Node.js 18+
+- An [OpenAI API key](https://platform.openai.com/api-keys)
 
-Knowledge becomes buried in a conversation.
+### Run locally
 
-For your product, I would design it around a principle:
+```bash
+git clone https://github.com/ccascio/socratictutor.git
+cd socratictutor
+npm install
+cp .env.example .env          # add your OPENAI_API_KEY
+npm run dev                   # http://localhost:3000
+```
 
-The chat is temporary. The knowledge is permanent.
+The SQLite database is created automatically at `data/socratic.sqlite` on first run.
 
-⸻
+### Build the macOS desktop app
 
-Overall Layout
+```bash
+bash scripts/build-desktop.sh     # builds unsigned .app
+npm run release:macos             # signed + notarized DMG (requires Apple Developer account)
+```
 
-Imagine something closer to:
+See [`scripts/build-desktop.sh`](scripts/build-desktop.sh) and [`scripts/release-macos.sh`](scripts/release-macos.sh) for details.
 
-+----------------------------------------------------+
-| Logo  Search   Notifications   Profile             |
-+----------------------------------------------------+
-| Learning Goals | Socratic Session | Knowledge Hub |
-|----------------|------------------|---------------|
-+----------------------------------------------------+
-|                                                    |
-|   Main Workspace                                   |
-|                                                    |
-+----------------------------------------------------+
+---
 
-The user spends most of the time in a workspace, not a chat.
+## Tech stack
 
-⸻
+- **Frontend / server** — Next.js 14 (App Router), Chakra UI
+- **AI** — OpenAI `gpt-4o-mini` via Vercel AI SDK, `text-embedding-3-small` for semantic search
+- **Database** — SQLite via `better-sqlite3`
+- **Desktop shell** — Tauri 2 + Node.js sidecar (Next.js standalone server)
 
-Screen 1: Learning Home
+---
 
-When the user opens the app:
+## Contributing
 
--------------------------------------------------------
-Good Morning Calo
-Continue Learning:
--------------------------------------------------------
-AI Agents Architecture            72%
-Quantum Mechanics                 34%
-Category Theory                   12%
--------------------------------------------------------
-Concepts To Review Today
--------------------------------------------------------
-Embeddings
-Attention Mechanism
-Entropy
--------------------------------------------------------
-Recent Discoveries
--------------------------------------------------------
-"You confused vector search with retrieval."
-"Your understanding of entropy improved."
--------------------------------------------------------
+Issues and pull requests are welcome. Please open an issue first for anything beyond small fixes.
 
-Notice:
+---
 
-No chat.
+## License
 
-The focus is progress.
-
-⸻
-
-Screen 2: Learning Goal Creation
-
-Instead of:
-
-What do you want to learn?
-
-The system guides.
-
-Topic
-
-Artificial Intelligence
-
-Desired depth
-
-○ Curious
-○ Practitioner
-○ Professional
-○ Expert
-
-Time commitment
-
-15 min/day
-30 min/day
-1 hour/day
-
-Learning style
-
-○ Visual
-○ Mathematical
-○ Conceptual
-○ Practical
-
-⸻
-
-Screen 3: Socratic Workspace
-
-This is the heart.
-
-Instead of:
-
-ChatGPT style
-
-I would create:
-
-+------------------------------------------------+
-| Conversation           | Understanding Model   |
-|                         |                       |
-| Tutor                  | Concepts              |
-| User                   | Mastery              |
-| Tutor                  | Misconceptions        |
-| User                   | Confidence            |
-|                         |                       |
-+------------------------------------------------+
-
-Real-time learning analysis.
-
-While the conversation happens, the right side updates.
-
-⸻
-
-Example:
-
-Concepts
-✓ Embeddings
-✓ Semantic Search
-⚠ Vector Databases
-✗ Hybrid Retrieval
-
-The user immediately sees what they know.
-
-⸻
-
-Dynamic Concept Cards
-
-As concepts emerge, cards appear.
-
-Example:
-
-----------------------------------
-Concept: Embeddings
-Mastery: 73%
-Strengths:
-✓ Similarity Search
-Weaknesses:
-⚠ Dimensionality
-Misconceptions:
-⚠ Embeddings store meaning
-Next Review:
-Tomorrow
-----------------------------------
-
-These cards become the permanent memory.
-
-⸻
-
-Misconception Tracker
-
-One of the most valuable screens.
-
----------------------------------------
-Misconceptions
----------------------------------------
-Topic: Transformers
-You said:
-"Attention stores knowledge"
-Correction:
-Attention routes information.
-Status:
-Needs reinforcement
-Detected:
-3 times
----------------------------------------
-
-This is incredibly powerful psychologically.
-
-People remember mistakes.
-
-⸻
-
-Session Debrief
-
-After every lesson:
-
----------------------------------------
-Today's Learning Session
----------------------------------------
-Questions answered:
-17
-Concepts learned:
-4
-Misconceptions found:
-2
-Mastery gained:
-+11%
-Confidence:
-Medium
-Next lesson:
-Retrieval-Augmented Generation
----------------------------------------
-
-Then:
-
-Generate
-[ ] Flashcards
-[ ] Notes
-[ ] Quiz
-[ ] Mind Map
-
-One click.
-
-⸻
-
-Knowledge Hub
-
-Think of it as the user’s personal Wikipedia.
-
-Artificial Intelligence
-├── Neural Networks
-├── Transformers
-├── Embeddings
-├── RAG
-├── Agents
-└── Evaluation
-
-Every node is searchable.
-
-Click:
-
-Embeddings
-
-Shows:
-
-* explanations
-* previous answers
-* misconceptions
-* quizzes
-* related concepts
-* sessions where discussed
-
-⸻
-
-Knowledge Graph (Later)
-
-Many founders start here.
-
-I wouldn’t.
-
-But later:
-
-RAG
- |
- ├── Embeddings
- |
- ├── Retrieval
- |
- ├── Vector DB
- |
- └── Re-ranking
-
-Node colors:
-
-Green = mastered
-Yellow = improving
-Red = weak
-
-This is motivational.
-
-⸻
-
-Search
-
-Search should feel magical.
-
-Search bar:
-
-Ask your learning history...
-
-Examples:
-
-Where did I misunderstand entropy?
-Show all AI concepts I've mastered.
-Which topics are blocking my understanding of RAG?
-What concepts have I not reviewed for 2 months?
-
-The search operates over the entire learning memory.
-
-⸻
-
-Review Dashboard
-
-----------------------------------
-Review Queue
-----------------------------------
-Embeddings              2 days overdue
-Attention               Today
-Chunking                Tomorrow
-Estimated Time:
-8 minutes
-----------------------------------
-
-Very Duolingo-like.
-
-⸻
-
-Mobile Experience
-
-Important insight:
-
-The dashboard is desktop-first.
-
-The review experience is mobile-first.
-
-Desktop:
-
-* learning
-* exploration
-* deep sessions
-
-Mobile:
-
-* flashcards
-* quizzes
-* reviews
-* daily streak
-
-⸻
-
-The killer feature
-
-If I were building this today, the killer screen would be:
-
-“How You Think”
-
-A dashboard showing:
-
-Learning Profile
-Strengths:
-✓ Systems Thinking
-✓ Architecture
-✓ Abstraction
-Weaknesses:
-⚠ Mathematical Rigor
-⚠ Memorization
-Common Mistakes:
-⚠ Jumping to advanced concepts
-⚠ Skipping foundations
-Preferred Learning Style:
-Conceptual
-
-Not:
-
-What do you know?
-
-But:
-
-How do you learn?
-
-That is something ChatGPT, Claude, Gemini, Perplexity, and most AI tutors do not really provide. It transforms the product from an AI tutor into a personal cognitive coach. For someone like you—who enjoys understanding deep systems rather than memorizing facts—that screen could become more valuable than the lessons themselves.
+MIT
